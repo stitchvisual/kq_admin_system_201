@@ -1,6 +1,17 @@
-import { X, AlertCircle, Calendar, FileText, DollarSign } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { AlertCircle, Calendar, FileText } from 'lucide-react';
 import type { Client } from '@/db/schema/clients';
-import { colors, shadows, typography } from '@/styles/botanical';
+import { colors, radii, spacing } from '@/styles/botanical';
+import {
+  CLIENT_PANEL,
+  ClientPanelHeader,
+  clientPanelBtnLabel,
+  clientPanelContentScroll,
+  clientPanelListRowShell,
+  clientPanelPrimaryFlexible,
+  clientPanelSecondaryCompact,
+  clientPanelSectionLabel,
+} from './clientPanelShared';
 
 interface ClientDeletePanelProps {
   client: Client;
@@ -30,18 +41,18 @@ export function ClientDeletePanel({
 
   return (
     <>
-      <PanelHeader title="Delete Client" onClose={onClose} accent="#a04040" />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1.1rem' }}>
+      <ClientPanelHeader title="Delete Client" onClose={onClose} titleColor="#a04040" />
+      <div style={clientPanelContentScroll}>
         <p
           style={{
             margin: '0 0 1rem',
             fontSize: '0.82rem',
-            color: 'hsl(145 15% 35%)',
+            color: colors.secondary,
             lineHeight: 1.55,
           }}
         >
           Are you sure you want to delete{' '}
-          <strong style={{ fontWeight: 600, color: 'hsl(145 15% 22%)' }}>
+          <strong style={{ fontWeight: 600, color: colors.heading }}>
             {client.name}
           </strong>
           ? This action cannot be undone.
@@ -50,13 +61,13 @@ export function ClientDeletePanel({
         {/* Warning banner */}
         <div
           style={{
-            padding: '0.85rem',
-            borderRadius: 10,
+            padding: spacing.card,
+            borderRadius: radii.card,
             background: 'rgba(160,64,64,0.07)',
             border: '1px solid rgba(160,64,64,0.2)',
-            marginBottom: '1.1rem',
+            marginBottom: CLIENT_PANEL.sectionMarginBottom,
             display: 'flex',
-            gap: '0.65rem',
+            gap: CLIENT_PANEL.listGap,
             alignItems: 'flex-start',
           }}
         >
@@ -75,24 +86,15 @@ export function ClientDeletePanel({
 
         {/* Related data summary */}
         {(hasAppointments || hasInvoices) && (
-          <div style={{ marginBottom: '1.1rem' }}>
-            <p
-              style={{
-                margin: '0 0 0.5rem',
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                color: 'hsl(145 15% 50%)',
-              }}
-            >
+          <div style={{ marginBottom: CLIENT_PANEL.sectionMarginBottom }}>
+            <p style={clientPanelSectionLabel}>
               Related Records to Archive
             </p>
             <div
               style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.5rem',
+                gap: CLIENT_PANEL.listGap,
               }}
             >
               {hasAppointments && (
@@ -117,13 +119,13 @@ export function ClientDeletePanel({
         {hasUnpaid && (
           <div
             style={{
-              padding: '0.85rem',
-              borderRadius: 10,
+              padding: spacing.card,
+              borderRadius: radii.card,
               background: 'rgba(182,148,112,0.10)',
               border: '1px solid rgba(182,148,112,0.3)',
-              marginBottom: '1.1rem',
+              marginBottom: CLIENT_PANEL.sectionMarginBottom,
               display: 'flex',
-              gap: '0.65rem',
+              gap: CLIENT_PANEL.listGap,
               alignItems: 'flex-start',
             }}
           >
@@ -159,22 +161,28 @@ export function ClientDeletePanel({
         <div
           style={{
             display: 'flex',
-            gap: '0.5rem',
-            marginTop: '1.25rem',
+            gap: CLIENT_PANEL.horizontalActionGap,
+            marginTop: CLIENT_PANEL.horizontalActionMarginTop,
+            minWidth: 0,
+            width: '100%',
           }}
         >
           <button
+            type="button"
             onClick={onDelete}
             disabled={deleting}
-            style={{
-              ...primaryBtnStyle('#a04040', 'rgba(160,64,64,0.1)'),
-              flex: 1,
-            }}
+            style={clientPanelPrimaryFlexible({
+              background: '#a04040',
+              opacity: deleting ? 0.7 : 1,
+              cursor: deleting ? 'not-allowed' : 'pointer',
+            })}
           >
-            {deleting ? 'Deleting...' : 'Yes, Delete Client'}
+            <span style={clientPanelBtnLabel}>
+              {deleting ? 'Deleting...' : 'Yes, Delete Client'}
+            </span>
           </button>
-          <button onClick={onBack} style={secondaryBtnStyle}>
-            Go Back
+          <button type="button" onClick={onBack} style={clientPanelSecondaryCompact()}>
+            <span style={clientPanelBtnLabel}>Go Back</span>
           </button>
         </div>
       </div>
@@ -187,32 +195,26 @@ function RelatedCountItem({
   label,
   count,
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   count: number;
 }) {
   return (
     <div
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0.5rem 0.7rem',
-        borderRadius: 6,
-        background: 'hsl(47 22% 94%)',
-        border: '1px solid hsl(37 18% 89%)',
+        ...clientPanelListRowShell,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ color: 'hsl(145 15% 48%)' }}>{icon}</span>
-        <span style={{ fontSize: '0.75rem', color: 'hsl(145 15% 38%)', fontWeight: 500 }}>
+        <span style={{ color: colors.muted }}>{icon}</span>
+        <span style={{ fontSize: '0.75rem', color: colors.secondary, fontWeight: 500 }}>
           {label}
         </span>
       </div>
       <span
         style={{
           fontSize: '0.8rem',
-          color: 'hsl(145 15% 22%)',
+          color: colors.heading,
           fontWeight: 600,
         }}
       >
@@ -221,92 +223,3 @@ function RelatedCountItem({
     </div>
   );
 }
-
-function PanelHeader({
-  title,
-  onClose,
-  accent,
-}: {
-  title: string;
-  onClose: () => void;
-  accent?: string;
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '1rem 1.1rem 0.75rem',
-        borderBottom: `1px solid ${colors.primary}`,
-        flexShrink: 0,
-      }}
-    >
-      <h2
-        style={{
-          fontFamily: typography.heading,
-          fontSize: '1rem',
-          fontWeight: 600,
-          color: accent ?? colors.heading,
-          margin: 0,
-        }}
-      >
-        {title}
-      </h2>
-      <button
-        onClick={onClose}
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          border: 'none',
-          background: colors.mutedBg,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: colors.muted,
-        }}
-      >
-        <X size={14} />
-      </button>
-    </div>
-  );
-}
-
-const primaryBtnStyle = (
-  bg: string,
-  hoverBg: string
-): React.CSSProperties => ({
-  height: 36,
-  borderRadius: 8,
-  border: 'none',
-  background: bg,
-  color: '#fff',
-  fontSize: '0.8rem',
-  fontWeight: 600,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 6,
-  fontFamily: typography.body,
-  boxShadow: shadows.button,
-});
-
-const secondaryBtnStyle: React.CSSProperties = {
-  height: 36,
-  padding: '0 14px',
-  borderRadius: 8,
-  border: `1px solid ${colors.primary}`,
-  background: 'transparent',
-  color: colors.secondary,
-  fontSize: '0.8rem',
-  fontWeight: 500,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 5,
-  fontFamily: typography.body,
-};

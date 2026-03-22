@@ -18,7 +18,7 @@ export function DataTable({ children, className }: DataTableProps) {
   const { colors } = useThemeColors()
   return (
     <div
-      className={cn('overflow-hidden rounded-lg', className)}
+      className={cn('w-full min-w-0 overflow-hidden rounded-lg', className)}
       style={{
         background: colors.card,
         border: `1px solid ${colors.primary}`,
@@ -64,7 +64,7 @@ interface DataTableHeaderLabelProps {
 }
 
 export function DataTableHeaderLabel({ children, className }: DataTableHeaderLabelProps) {
-  const { colors, typography } = useThemeColors()
+  const { colors } = useThemeColors()
   return (
     <span
       className={cn(className)}
@@ -93,7 +93,7 @@ interface DataTableBodyProps {
 export function DataTableBody({ children, className }: DataTableBodyProps) {
   const { colors } = useThemeColors()
   return (
-    <div className={cn('divide-y', className)} style={{ ['divideColor' as any]: colors.subtle }}>
+    <div className={cn('divide-y divide-[var(--divide-color)]', className)} style={{ ['--divide-color']: colors.subtle } as React.CSSProperties}>
       {children}
     </div>
   );

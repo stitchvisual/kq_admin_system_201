@@ -1,7 +1,14 @@
-import { X } from 'lucide-react';
 import type { NdisPricing } from '@/db/schema/ndis_pricing';
 import type { Client } from '@/db/schema/clients';
-import { colors, typography, formStyles } from '@/styles/botanical';
+import { colors, radii, typography, formStyles } from '@/styles/botanical';
+import {
+  CLIENT_PANEL,
+  ClientPanelHeader,
+  clientPanelBtnLabel,
+  clientPanelContentScroll,
+  clientPanelPrimaryFlexible,
+  clientPanelSecondaryCompact,
+} from './clientPanelShared';
 
 interface ClientFormPanelProps {
   mode: 'new' | 'edit';
@@ -38,13 +45,13 @@ export function ClientFormPanel({
 }: ClientFormPanelProps) {
   return (
     <>
-      <PanelHeader
+      <ClientPanelHeader
         title={mode === 'new' ? 'Add Client' : 'Edit Client'}
         onClose={onClose}
       />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1.1rem' }}>
+      <div style={clientPanelContentScroll}>
         <form onSubmit={onSubmit}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             
             <FormField label="Name *">
               <input
@@ -114,7 +121,7 @@ export function ClientFormPanel({
               />
             </FormField>
 
-            <div style={{ height: 1, background: 'hsl(37 18% 89%)', margin: '0.5rem 0' }} />
+            <div style={{ height: 1, background: colors.primary, margin: '0.5rem 0' }} />
 
             <FormField label="Weekday Rate Code">
               <select
@@ -167,7 +174,7 @@ export function ClientFormPanel({
             <div
               style={{
                 padding: '0.6rem 0.85rem',
-                borderRadius: 8,
+                borderRadius: radii.button,
                 background: 'rgba(182,148,112,0.08)',
                 border: '1px solid rgba(182,148,112,0.2)',
                 marginTop: '0.3rem',
@@ -186,71 +193,34 @@ export function ClientFormPanel({
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1.25rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: CLIENT_PANEL.horizontalActionGap,
+              marginTop: CLIENT_PANEL.horizontalActionMarginTop,
+              minWidth: 0,
+              width: '100%',
+            }}
+          >
             <button
               type="submit"
               disabled={saving}
-              style={primaryBtnStyle}
+              style={clientPanelPrimaryFlexible({
+                opacity: saving ? 0.7 : 1,
+                cursor: saving ? 'not-allowed' : 'pointer',
+              })}
             >
-              {saving ? 'Saving...' : mode === 'new' ? 'Create Client' : 'Save Changes'}
+              <span style={clientPanelBtnLabel}>
+                {saving ? 'Saving...' : mode === 'new' ? 'Create Client' : 'Save Changes'}
+              </span>
             </button>
-            <button type="button" onClick={onClose} style={secondaryBtnStyle}>
-              Cancel
+            <button type="button" onClick={onClose} style={clientPanelSecondaryCompact()}>
+              <span style={clientPanelBtnLabel}>Cancel</span>
             </button>
           </div>
         </form>
       </div>
     </>
-  );
-}
-
-function PanelHeader({
-  title,
-  onClose,
-}: {
-  title: string;
-  onClose: () => void;
-}) {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '1rem 1.1rem 0.75rem',
-        borderBottom: `1px solid ${colors.primary}`,
-        flexShrink: 0,
-      }}
-    >
-      <h2
-        style={{
-          fontFamily: typography.heading,
-          fontSize: '1rem',
-          fontWeight: 600,
-          color: colors.heading,
-          margin: 0,
-        }}
-      >
-        {title}
-      </h2>
-      <button
-        onClick={onClose}
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 8,
-          border: 'none',
-          background: colors.mutedBg,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: colors.muted,
-        }}
-      >
-        <X size={14} />
-      </button>
-    </div>
   );
 }
 
@@ -280,38 +250,4 @@ const inputStyle: React.CSSProperties = {
 
 const selectStyle: React.CSSProperties = {
   ...formStyles.select,
-};
-
-const primaryBtnStyle: React.CSSProperties = {
-  height: 36,
-  borderRadius: 8,
-  border: 'none',
-  background: colors.primaryBase,
-  color: '#fff',
-  fontSize: '0.8rem',
-  fontWeight: 600,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 6,
-  fontFamily: typography.body,
-  flex: 1,
-};
-
-const secondaryBtnStyle: React.CSSProperties = {
-  height: 36,
-  padding: '0 14px',
-  borderRadius: 8,
-  border: `1px solid ${colors.primary}`,
-  background: 'transparent',
-  color: colors.secondary,
-  fontSize: '0.8rem',
-  fontWeight: 500,
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 5,
-  fontFamily: typography.body,
 };

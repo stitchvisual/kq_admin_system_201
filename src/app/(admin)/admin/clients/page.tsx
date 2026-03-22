@@ -10,8 +10,8 @@ import { ClientFormPanel } from './_components/ClientFormPanel';
 import { ClientDeletePanel } from './_components/ClientDeletePanel';
 import type { Client } from '@/db/schema/clients';
 import type { NdisPricing } from '@/db/schema/ndis_pricing';
-import { colors, animations } from '@/styles/botanical';
-import { EmptyClients, DataTable, DataTableHeader, DataTableHeaderLabel, DataTableBody, DataTableRow, DataTableHeaderGrid, DataTableRowGrid } from '@/components/botanical';
+import { colors } from '@/styles/botanical';
+import { EmptyClients, DataTable, DataTableHeaderLabel } from '@/components/botanical';
 
 type PanelMode = 'empty' | 'view' | 'new' | 'edit' | 'deleteConfirm';
 
@@ -351,11 +351,12 @@ export default function ClientsPage() {
         subtitle="Manage your client information"
         action={
           <button
+            type="button"
             onClick={openAddClient}
-            className="h-9 px-4 rounded-lg bg-primary hover:bg-primary/90 text-white cursor-pointer text-xs font-semibold flex items-center gap-1.5 font-body transition-colors duration-150"
+            className="h-9 max-w-full min-w-0 shrink px-4 rounded-lg bg-primary hover:bg-primary/90 text-white cursor-pointer text-xs font-semibold flex items-center gap-1.5 font-body transition-colors duration-150 overflow-hidden"
           >
-            <Plus size={15} />
-            <span>Add Client</span>
+            <Plus size={15} className="shrink-0" />
+            <span className="min-w-0 truncate">Add Client</span>
           </button>
         }
       />
@@ -364,10 +365,10 @@ export default function ClientsPage() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* MAIN CONTENT */}
-        <div className="flex-1 overflow-auto p-4 md:p-6">
+        <div className="flex-1 min-w-0 overflow-auto p-6 md:p-8">
           
           {/* Search */}
-          <div className="relative mb-6 max-w-full md:max-w-[500px]">
+          <div className="relative mb-8 max-w-full md:max-w-[500px]">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2"
               size={16}
@@ -388,27 +389,38 @@ export default function ClientsPage() {
               <Loader2 size={32} className="text-primary animate-spin" />
             </div>
           ) : clients.length === 0 ? (
-            <div className="flex flex-col items-center justify-center p-8 md:p-16 bg-card rounded-xl border border-primary">
+            <div className="flex flex-col items-center justify-center p-10 md:p-20 bg-card rounded-xl border border-primary">
               <EmptyClients onAddClient={openAddClient} />
             </div>
           ) : (
-            <DataTable>
+            <div className="w-full min-w-0">
+            <DataTable className="w-full min-w-0">
               {/* Desktop table header - Invoice style */}
-              <div className="hidden md:grid md:grid-cols-[1fr_200px_160px_120px_100px] gap-4 px-4 py-3 border-b border-primary/80 items-center bg-mutedBg">
-                <DataTableHeaderLabel>Name</DataTableHeaderLabel>
-                <DataTableHeaderLabel>Email</DataTableHeaderLabel>
-                <DataTableHeaderLabel>Phone</DataTableHeaderLabel>
-                <DataTableHeaderLabel>NDIS #</DataTableHeaderLabel>
-                <DataTableHeaderLabel>Rate Codes</DataTableHeaderLabel>
+              <div className="hidden md:grid md:grid-cols-[1fr_200px_160px_120px_100px] md:w-full gap-5 px-5 py-4 border-b border-primary/80 items-center bg-mutedBg">
+                <div className="min-w-0 overflow-hidden">
+                  <DataTableHeaderLabel>Name</DataTableHeaderLabel>
+                </div>
+                <div className="min-w-0 overflow-hidden">
+                  <DataTableHeaderLabel>Email</DataTableHeaderLabel>
+                </div>
+                <div className="min-w-0 overflow-hidden">
+                  <DataTableHeaderLabel>Phone</DataTableHeaderLabel>
+                </div>
+                <div className="min-w-0 overflow-hidden">
+                  <DataTableHeaderLabel>NDIS #</DataTableHeaderLabel>
+                </div>
+                <div className="min-w-0 overflow-hidden">
+                  <DataTableHeaderLabel>Rate Codes</DataTableHeaderLabel>
+                </div>
               </div>
 
               {/* Client rows - Invoice style */}
-              <div className="divide-y" style={{ divideColor: colors.subtle }}>
+              <div className="divide-y divide-[var(--divide-color)] w-full min-w-0" style={{ ['--divide-color']: colors.subtle } as React.CSSProperties}>
                 {clients.map(client => (
                   <div
                     key={client.id}
                     onClick={() => handleClientClick(client)}
-                    className="grid grid-cols-[1fr_200px_160px_120px_100px] gap-5 px-4 py-[0.85rem] border-b border-primary/80 items-center cursor-pointer transition-all duration-120 hover:bg-primary/3"
+                    className="grid w-full min-w-0 grid-cols-[1fr_200px_160px_120px_100px] gap-6 px-5 py-4 border-b border-primary/80 items-center cursor-pointer transition-all duration-120 hover:bg-primary/3"
                   >
                     {/* Mobile card layout */}
                     <div className="md:hidden flex flex-col gap-2 mb-3">
@@ -438,20 +450,22 @@ export default function ClientsPage() {
 
                     {/* Desktop: Invoice style row */}
                     <div className="hidden md:contents">
-                      <div className="font-medium text-foreground text-[13px]">{client.name}</div>
-                      <div className="flex items-center gap-1.5 text-secondary text-[13px]">
-                        <Mail size={13} />
-                        {client.email}
+                      <div className="min-w-0 overflow-hidden">
+                        <div className="truncate font-medium text-foreground text-[13px]">{client.name}</div>
                       </div>
-                      <div className="flex items-center gap-1.5 text-secondary text-[13px]">
-                        <Phone size={13} />
-                        {client.phone || '-'}
+                      <div className="min-w-0 overflow-hidden flex items-center gap-1.5 text-secondary text-[13px]">
+                        <Mail size={13} className="shrink-0" />
+                        <span className="truncate">{client.email}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-secondary text-[13px]">
-                        <UserCheck size={13} />
-                        {client.ndis_number || '-'}
+                      <div className="min-w-0 overflow-hidden flex items-center gap-1.5 text-secondary text-[13px]">
+                        <Phone size={13} className="shrink-0" />
+                        <span className="truncate">{client.phone || '-'}</span>
                       </div>
-                      <div>
+                      <div className="min-w-0 overflow-hidden flex items-center gap-1.5 text-secondary text-[13px]">
+                        <UserCheck size={13} className="shrink-0" />
+                        <span className="truncate">{client.ndis_number || '-'}</span>
+                      </div>
+                      <div className="min-w-0 overflow-hidden flex items-center">
                         <RateCodeStatus
                           weekday={client.weekday_code}
                           saturday={client.saturday_code}
@@ -463,11 +477,12 @@ export default function ClientsPage() {
                 ))}
               </div>
             </DataTable>
+            </div>
           )}
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex justify-center mt-6 gap-1.5">
+            <div className="flex justify-center mt-8 gap-1.5">
               <button
                 onClick={() => setPage(prev => Math.max(1, prev - 1))}
                 disabled={page === 1}
