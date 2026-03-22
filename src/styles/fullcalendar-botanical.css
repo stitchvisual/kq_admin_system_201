@@ -1,0 +1,366 @@
+/* ============================================================================
+ * FULLCALENDAR — KQ PORTAL BOTANICAL THEME (Google Cal density)
+ * ============================================================================
+ * Import in globals.css:  @import "../styles/fullcalendar-botanical.css";
+ *
+ * Key difference from default: slot heights are compact (like Google Calendar)
+ * so an 8am–6pm working day fits on screen without scrolling.
+ * ============================================================================ */
+
+/* --- CSS Variable Overrides --- */
+.fc-botanical {
+  --fc-border-color: hsl(37 18% 89%);
+  --fc-page-bg-color: hsl(47 22% 96%);
+  --fc-neutral-bg-color: hsl(40 20% 98%);
+  --fc-neutral-text-color: hsl(145 15% 38%);
+  --fc-today-bg-color: hsl(130 13% 50% / 0.035);
+
+  --fc-button-bg-color: transparent;
+  --fc-button-border-color: hsl(37 18% 85%);
+  --fc-button-text-color: hsl(145 15% 35%);
+  --fc-button-hover-bg-color: hsl(130 13% 50% / 0.08);
+  --fc-button-hover-border-color: hsl(130 13% 50% / 0.3);
+  --fc-button-active-bg-color: hsl(130 13% 50%);
+  --fc-button-active-border-color: hsl(130 13% 50%);
+  --fc-button-active-text-color: #fff;
+
+  --fc-event-bg-color: transparent;
+  --fc-event-border-color: transparent;
+  --fc-event-text-color: inherit;
+  --fc-event-selected-overlay-color: rgba(45, 58, 49, 0.06);
+
+  --fc-highlight-color: hsl(130 13% 50% / 0.10);
+  --fc-non-business-color: hsl(47 22% 94% / 0.4);
+  --fc-now-indicator-color: hsl(0 72% 51%);
+
+  --fc-list-event-hover-bg-color: hsl(130 13% 50% / 0.06);
+
+  font-family: var(--font-body), 'Source Sans 3', sans-serif;
+}
+
+/* --- Toolbar --- */
+.fc-botanical .fc-toolbar {
+  padding: 0.5rem 0.75rem;
+  gap: 0.5rem;
+}
+
+.fc-botanical .fc-toolbar-title {
+  font-family: var(--font-heading), 'Playfair Display', serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: hsl(145 15% 22%);
+  letter-spacing: -0.01em;
+}
+
+.fc-botanical .fc-button {
+  font-family: var(--font-body), 'Source Sans 3', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  padding: 0.3rem 0.65rem;
+  text-transform: none;
+  letter-spacing: 0;
+  transition: all 150ms ease;
+  box-shadow: none !important;
+}
+
+.fc-botanical .fc-button:focus {
+  box-shadow: 0 0 0 2px hsl(130 13% 50% / 0.2) !important;
+}
+
+.fc-botanical .fc-button-primary:not(:disabled).fc-button-active {
+  background: hsl(130 13% 50%);
+  border-color: hsl(130 13% 50%);
+  color: #fff;
+}
+
+.fc-botanical .fc-button-primary:not(:disabled).fc-button-active:hover {
+  background: hsl(130 13% 44%);
+}
+
+.fc-botanical .fc-prev-button,
+.fc-botanical .fc-next-button {
+  padding: 0.3rem 0.45rem;
+}
+
+.fc-botanical .fc-today-button {
+  text-transform: capitalize;
+}
+
+.fc-botanical .fc-today-button:disabled {
+  opacity: 0.4;
+}
+
+/* --- Day Headers --- */
+.fc-botanical .fc-col-header-cell {
+  padding: 0.35rem 0;
+  background: hsl(40 20% 98%);
+  border-color: hsl(37 18% 89%);
+}
+
+.fc-botanical .fc-col-header-cell-cushion {
+  font-family: var(--font-body);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: hsl(145 15% 50%);
+  text-decoration: none;
+  padding: 0.3rem 0;
+}
+
+.fc-botanical .fc-day-today .fc-col-header-cell-cushion {
+  color: hsl(130 13% 38%);
+  font-weight: 700;
+}
+
+/* --- TIME GRID SLOTS (Google Calendar-style compact) ---
+ * The key to fitting a full working day on screen.
+ * With 15-min slot duration at 12px height = 48px per hour.
+ * 14 hours (6am-8pm) × 48px = 672px — fits comfortably in viewport.
+ */
+.fc-botanical .fc-timegrid-slot {
+  height: 12px;   /* Each 15-min slot */
+  border-bottom: none;
+}
+
+/* Major hour lines (solid) */
+.fc-botanical .fc-timegrid-slot-lane {
+  border-bottom: 1px solid hsl(37 18% 89%);
+}
+
+/* Minor slot lines (subtle) — the 15/30/45 min marks */
+.fc-botanical .fc-timegrid-slot-lane.fc-timegrid-slot-minor {
+  border-bottom: 1px solid hsl(37 18% 93%);
+  border-top-style: none;
+}
+
+/* Time gutter labels */
+.fc-botanical .fc-timegrid-slot-label {
+  vertical-align: top;
+}
+
+.fc-botanical .fc-timegrid-slot-label-cushion {
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: hsl(145 15% 55%);
+  letter-spacing: 0.01em;
+  padding-top: 0;
+  padding-right: 6px;
+}
+
+/* --- Now Indicator (red line like Google Cal) --- */
+.fc-botanical .fc-timegrid-now-indicator-line {
+  border-color: hsl(0 72% 51%);
+  border-width: 2px;
+  z-index: 4;
+}
+
+/* Now indicator dot on the left edge */
+.fc-botanical .fc-timegrid-now-indicator-arrow {
+  border-color: hsl(0 72% 51%);
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+  left: -5px;
+}
+
+/* --- Events (time grid) --- */
+.fc-botanical .fc-timegrid-event-harness {
+  margin-right: 2px;
+}
+
+.fc-botanical .fc-timegrid-event {
+  border: none;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(45, 58, 49, 0.06);
+  transition: box-shadow 150ms ease, transform 150ms ease;
+}
+
+.fc-botanical .fc-timegrid-event:hover {
+  box-shadow: 0 3px 10px rgba(45, 58, 49, 0.12);
+  z-index: 5 !important;
+}
+
+/* Remove FC's default inner padding — our renderer handles it */
+.fc-botanical .fc-timegrid-event .fc-event-main {
+  padding: 0;
+}
+
+/* Hide FC's default time/title — our custom content handles display */
+.fc-botanical .fc-event-time {
+  display: none;
+}
+
+.fc-botanical .fc-event-title-container {
+  display: contents;
+}
+
+/* Drag mirror */
+.fc-botanical .fc-event-mirror {
+  opacity: 0.7;
+  box-shadow: 0 6px 20px rgba(45, 58, 49, 0.15);
+}
+
+/* --- Events (month/daygrid) --- */
+.fc-botanical .fc-daygrid-event {
+  border: none;
+  border-radius: 3px;
+  margin: 1px 2px;
+  padding: 0;
+}
+
+.fc-botanical .fc-daygrid-dot-event {
+  padding: 0;
+}
+
+.fc-botanical .fc-more-link {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: hsl(130 13% 45%);
+  padding: 2px 4px;
+}
+
+/* --- List View --- */
+.fc-botanical .fc-list {
+  border-color: hsl(37 18% 89%);
+}
+
+.fc-botanical .fc-list-day-cushion {
+  background: hsl(47 22% 94%);
+  font-family: var(--font-heading), serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: hsl(145 15% 28%);
+  padding: 0.45rem 0.75rem;
+}
+
+.fc-botanical .fc-list-event td {
+  border-color: hsl(37 18% 91%);
+  padding: 0.4rem 0.75rem;
+}
+
+.fc-botanical .fc-list-event-time {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: hsl(145 15% 45%);
+  white-space: nowrap;
+  width: 80px;
+}
+
+.fc-botanical .fc-list-event-dot {
+  display: none;
+}
+
+.fc-botanical .fc-list-event:hover td {
+  background: hsl(130 13% 50% / 0.04);
+}
+
+/* Empty list state */
+.fc-botanical .fc-list-empty-cushion {
+  font-size: 0.85rem;
+  color: hsl(145 15% 50%);
+  padding: 2rem;
+}
+
+/* --- Day Grid Cells (month view) --- */
+.fc-botanical .fc-daygrid-day-number {
+  font-family: var(--font-heading), serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: hsl(145 15% 35%);
+  padding: 0.35rem 0.5rem;
+  text-decoration: none;
+}
+
+.fc-botanical .fc-day-today .fc-daygrid-day-number {
+  background: hsl(130 13% 50%);
+  color: #fff;
+  border-radius: 9999px;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.72rem;
+}
+
+/* --- Selection highlight --- */
+.fc-botanical .fc-highlight {
+  background: hsl(130 13% 50% / 0.10);
+  border-radius: 3px;
+}
+
+/* --- Business hours shading --- */
+.fc-botanical .fc-non-business {
+  background: hsl(47 22% 94% / 0.35);
+}
+
+/* --- Scrollbar --- */
+.fc-botanical .fc-scroller::-webkit-scrollbar {
+  width: 5px;
+}
+
+.fc-botanical .fc-scroller::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.fc-botanical .fc-scroller::-webkit-scrollbar-thumb {
+  background: hsl(37 18% 82%);
+  border-radius: 3px;
+}
+
+.fc-botanical .fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: hsl(37 18% 72%);
+}
+
+/* --- Responsive --- */
+@media (max-width: 639px) {
+  .fc-botanical .fc-header-toolbar {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .fc-botanical .fc-toolbar-chunk {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    justify-content: center;
+  }
+
+  .fc-botanical .fc-button {
+    font-size: 0.68rem;
+    padding: 0.25rem 0.45rem;
+  }
+
+  .fc-botanical .fc-toolbar-title {
+    font-size: 0.82rem;
+  }
+}
+
+/* Tablet: slightly taller slots for touch targets */
+@media (min-width: 640px) and (max-width: 1023px) {
+  .fc-botanical .fc-timegrid-slot {
+    height: 14px;
+  }
+}
+
+/* Large screens: can afford slightly taller slots */
+@media (min-width: 1440px) {
+  .fc-botanical .fc-timegrid-slot {
+    height: 14px;
+  }
+}
+
+/* --- Accessibility: reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .fc-botanical .fc-timegrid-event,
+  .fc-botanical .fc-daygrid-event {
+    transition: none;
+  }
+
+  .fc-botanical .fc-timegrid-event:hover {
+    transform: none;
+  }
+}
