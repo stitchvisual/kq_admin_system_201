@@ -67,8 +67,12 @@ export function ClientDetailPanel({
   const amber = '#b69470';
 
   return (
-    <>
-      <ClientPanelHeader title="Client Details" onClose={onClose} />
+    <div className="flex flex-col h-full border-t-[3px] border-t-primary">
+      <ClientPanelHeader
+        title="Client Details"
+        breadcrumb={`Clients / ${client.name}`}
+        onClose={onClose}
+      />
       <div style={clientPanelContentScroll}>
         {/* Client Info Card */}
         <div
@@ -95,7 +99,7 @@ export function ClientDetailPanel({
               flexShrink: 0,
             }}
           >
-            <span style={{ color: '#fff', fontSize: '0.8rem', fontWeight: 700 }}>
+            <span style={{ color: '#fff', fontSize: 'var(--font-size-meta)', fontWeight: 700 }}>
               {initials}
             </span>
           </div>
@@ -262,7 +266,7 @@ export function ClientDetailPanel({
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -289,7 +293,7 @@ function RateCodeRow({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
           <span
             style={{
-              fontSize: '0.7rem',
+              fontSize: 'var(--font-size-badge)',
               color: colors.heading,
               fontWeight: 500,
             }}
@@ -316,7 +320,7 @@ function RateCodeRow({
           <AlertCircle size={12} style={{ color: amber }} />
           <span
             style={{
-              fontSize: '0.7rem',
+              fontSize: 'var(--font-size-badge)',
               color: amber,
               fontWeight: 600,
             }}
@@ -488,7 +492,7 @@ function StatRow({ label, value }: { label: string; value: string | number }) {
       <span style={{ fontSize: '0.72rem', color: colors.secondary, fontWeight: 500 }}>
         {label}
       </span>
-      <span style={{ fontSize: '0.8rem', color: colors.heading, fontWeight: 600 }}>
+      <span style={{ fontSize: 'var(--font-size-meta)', color: colors.heading, fontWeight: 600 }}>
         {value}
       </span>
     </div>

@@ -109,7 +109,7 @@ export function ClientAvatar({ name, clientId, size = 'md' }: ClientAvatarProps)
   const sizeMap = {
     sm: { width: 24, height: 24, fontSize: '0.625rem' },
     md: { width: 32, height: 32, fontSize: '0.75rem' },
-    lg: { width: 40, height: 40, fontSize: '0.875rem' },
+    lg: { width: 40, height: 40, fontSize: 'var(--font-size-body)' },
   };
   
   const dims = sizeMap[size];

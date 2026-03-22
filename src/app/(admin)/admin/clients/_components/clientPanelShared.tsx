@@ -55,11 +55,14 @@ export function ClientPanelHeader({
   title,
   onClose,
   titleColor,
+  breadcrumb,
 }: {
   title: string;
   onClose: () => void;
   /** e.g. destructive accent for delete panel */
   titleColor?: string;
+  /** Optional context breadcrumb above the title */
+  breadcrumb?: string;
 }) {
   return (
     <div
@@ -72,21 +75,28 @@ export function ClientPanelHeader({
         flexShrink: 0,
       }}
     >
-      <h2
-        style={{
-          fontFamily: typography.heading,
-          fontSize: typography.sizes.cardTitle,
-          fontWeight: typography.weights.heading,
-          color: titleColor ?? colors.heading,
-          margin: 0,
-          minWidth: 0,
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}
-      >
-        {title}
-      </h2>
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+        {breadcrumb && (
+          <span className="text-[11px] uppercase text-muted-foreground tracking-wider block mb-1">
+            {breadcrumb}
+          </span>
+        )}
+        <h2
+          style={{
+            fontFamily: typography.heading,
+            fontSize: typography.sizes.cardTitle,
+            fontWeight: typography.weights.heading,
+            color: titleColor ?? colors.heading,
+            margin: 0,
+            minWidth: 0,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {title}
+        </h2>
+      </div>
       <button
         type="button"
         onClick={onClose}
@@ -116,7 +126,7 @@ const panelPrimaryBase: CSSProperties = {
   borderRadius: 8,
   border: 'none',
   color: '#fff',
-  fontSize: '0.8rem',
+  fontSize: 'var(--font-size-meta)',
   fontWeight: 600,
   cursor: 'pointer',
   display: 'flex',
@@ -156,7 +166,7 @@ const panelSecondaryBase: CSSProperties = {
   border: `1px solid ${colors.primary}`,
   background: 'transparent',
   color: colors.secondary,
-  fontSize: '0.8rem',
+  fontSize: 'var(--font-size-meta)',
   fontWeight: 500,
   cursor: 'pointer',
   display: 'flex',

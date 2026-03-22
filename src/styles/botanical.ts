@@ -251,10 +251,12 @@ export const typography = {
   sizes: {
     pageTitle: '1.15rem',
     cardTitle: '1rem',
-    body: '0.82rem',
-    small: '0.78rem',
+    body: 'var(--font-size-body)',
+    small: 'var(--font-size-meta)',
     label: '0.65rem',
     tiny: '0.62rem',
+    badge: 'var(--font-size-badge)',
+    meta: 'var(--font-size-meta)',
   },
   
   weights: {
@@ -405,7 +407,7 @@ export const buttonStyles = {
     border: 'none',
     background: bg,
     color: '#fff',
-    fontSize: '0.8rem',
+    fontSize: 'var(--font-size-meta)',
     fontWeight: typography.weights.heading,
     cursor: 'pointer',
     display: 'flex',
@@ -423,7 +425,7 @@ export const buttonStyles = {
     border: `1px solid ${colors.primary}`,
     background: 'transparent',
     color: colors.secondary,
-    fontSize: '0.8rem',
+    fontSize: 'var(--font-size-meta)',
     fontWeight: 500,
     cursor: 'pointer',
     display: 'flex',

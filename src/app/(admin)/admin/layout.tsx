@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { SentryErrorBoundary } from "@/components/sentry/SentryErrorBoundary";
 import { colors, shadows, radii, typography } from "@/styles/botanical";
 
@@ -45,7 +44,7 @@ export default async function AdminLayout({
                 background: `linear-gradient(135deg, ${colors.primaryBase} 0%, ${colors.primaryHover} 100%)`,
                 boxShadow: `${shadows.button}, inset 0 1px 0 rgba(255,255,255,0.15)`,
                 fontFamily: typography.heading,
-                fontSize: '0.8rem',
+                fontSize: 'var(--font-size-meta)',
                 letterSpacing: '0.04em',
               }}
             >
@@ -81,9 +80,6 @@ export default async function AdminLayout({
 
           {/* User section at bottom */}
           <div className="flex flex-col items-center gap-3 mt-auto">
-            {/* Theme toggle */}
-            <ThemeToggle />
-            
             <form action="/api/auth/logout" method="post">
               <button
                 type="submit"
@@ -111,7 +107,7 @@ export default async function AdminLayout({
           </div>
         </aside>
 
-        {/* Mobile header with theme toggle */}
+        {/* Mobile header */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 sticky top-0 z-40" style={{ background: colors.card, borderBottom: `1px solid ${colors.primary}` }}>
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white"
@@ -122,7 +118,6 @@ export default async function AdminLayout({
           >
             KQ
           </div>
-          <ThemeToggle />
         </div>
 
         {/* Mobile bottom navigation */}

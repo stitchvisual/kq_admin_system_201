@@ -469,7 +469,7 @@ export default function AppointmentsPage() {
                     onClick={() => jumpToWeekContaining(d)}
                     className="w-full aspect-square rounded-full border-none cursor-pointer transition-colors duration-150 hover:bg-primary/7"
                     style={{
-                      fontSize: isT ? '0.7rem' : '0.7rem',
+                      fontSize: 'var(--font-size-badge)',
                       fontWeight: isT ? 700 : inWeek ? 600 : 400,
                       background: isT ? 'hsl(130 13% 50%)' : inWeek ? 'hsl(130 13% 50% / 0.12)' : 'transparent',
                       color: isT ? '#fff' : inWeek ? 'hsl(130 13% 35%)' : 'hsl(145 15% 35%)',

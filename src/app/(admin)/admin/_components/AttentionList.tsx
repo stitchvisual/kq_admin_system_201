@@ -84,7 +84,7 @@ export function AttentionList({
       <h2
         style={{
         fontFamily: typography.body,
-        fontSize: '0.7rem',
+        fontSize: 'var(--font-size-badge)',
         fontWeight: typography.weights.bold,
         letterSpacing: '0.09em',
         textTransform: 'uppercase',
@@ -104,18 +104,18 @@ export function AttentionList({
 
           const severityColors = item.severity === 'high'
             ? {
-                bg: 'rgba(160,64,64,0.08)',
-                border: 'rgba(160,64,64,0.25)',
-                text: '#7a3030',
-                icon: '#a04040',
-                leftBorder: '#a04040',
+                bg: 'var(--status-overdue-bg)',
+                border: 'var(--status-overdue-border)',
+                text: 'var(--status-overdue-text)',
+                icon: 'var(--status-overdue-dot)',
+                leftBorder: 'var(--status-overdue-dot)',
               }
             : {
-                bg: 'rgba(182,148,112,0.08)',
-                border: 'rgba(182,148,112,0.25)',
-                text: '#6b4d2f',
-                icon: '#b69470',
-                leftBorder: '#b69470',
+                bg: 'var(--status-pending-bg)',
+                border: 'var(--status-pending-border)',
+                text: 'var(--status-pending-text)',
+                icon: 'var(--status-pending-dot)',
+                leftBorder: 'var(--status-pending-dot)',
               };
 
           return (
@@ -136,8 +136,8 @@ export function AttentionList({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = item.severity === 'high' 
-                  ? 'rgba(160,64,64,0.12)' 
-                  : 'rgba(182,148,112,0.12)';
+                  ? 'var(--status-overdue-bg)' 
+                  : 'var(--status-pending-bg)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = severityColors.bg;

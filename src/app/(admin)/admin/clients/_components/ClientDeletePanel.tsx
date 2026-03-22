@@ -75,7 +75,7 @@ export function ClientDeletePanel({
           <p
             style={{
               margin: 0,
-              fontSize: '0.8rem',
+              fontSize: 'var(--font-size-meta)',
               color: '#7a3030',
               lineHeight: 1.45,
             }}
@@ -134,7 +134,7 @@ export function ClientDeletePanel({
               <p
                 style={{
                   margin: '0 0 0.3rem',
-                  fontSize: '0.8rem',
+                  fontSize: 'var(--font-size-meta)',
                   fontWeight: 600,
                   color: '#6b4d2f',
                 }}
@@ -144,7 +144,7 @@ export function ClientDeletePanel({
               <p
                 style={{
                   margin: 0,
-                  fontSize: '0.8rem',
+                  fontSize: 'var(--font-size-meta)',
                   color: '#7a5a3a',
                   lineHeight: 1.45,
                 }}
@@ -213,7 +213,7 @@ function RelatedCountItem({
       </div>
       <span
         style={{
-          fontSize: '0.8rem',
+          fontSize: 'var(--font-size-meta)',
           color: colors.heading,
           fontWeight: 600,
         }}

@@ -99,10 +99,10 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
 
           const statusColor =
             appointment.status === 'completed'
-              ? { bg: 'rgba(90,138,96,0.15)', text: '#3a5a3e', dot: '#5a8a60' }
+              ? { bg: 'var(--status-completed-bg)', text: 'var(--status-completed-text)', dot: 'var(--status-completed-dot)' }
               : appointment.status === 'confirmed'
-              ? { bg: 'rgba(120,149,170,0.15)', text: '#2d4a5c', dot: '#7895aa' }
-              : { bg: 'rgba(182,148,112,0.15)', text: '#6b4d2f', dot: '#b69470' };
+              ? { bg: 'var(--status-confirmed-bg)', text: 'var(--status-confirmed-text)', dot: 'var(--status-confirmed-dot)' }
+              : { bg: 'var(--status-pending-bg)', text: 'var(--status-pending-text)', dot: 'var(--status-pending-dot)' };
 
           const clientName = appointment.is_group
             ? 'Group Session'
@@ -157,11 +157,11 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: 3,
-                          fontSize: '0.7rem',
+                          fontSize: 'var(--font-size-badge)',
                           padding: '2px 6px',
                           borderRadius: 4,
-                          background: 'rgba(130,160,145,0.12)',
-                          color: '#3a5a45',
+                          background: 'var(--status-group-bg)',
+                          color: 'var(--status-group-text)',
                           fontWeight: 600,
                           flexShrink: 0,
                         }}
@@ -170,7 +170,7 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
                       </span>
                     )}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: colors.secondary }}>
+                  <div style={{ fontSize: 'var(--font-size-meta)', color: colors.secondary }}>
                     {formatTime(start)} - {formatTime(end)}
                   </div>
                   {appointment.is_group && participantNames && (
@@ -239,7 +239,7 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
 
 const sectionHeading: React.CSSProperties = {
   fontFamily: typography.body,
-  fontSize: '0.7rem',
+  fontSize: 'var(--font-size-badge)',
   fontWeight: 700,
   letterSpacing: '0.09em',
   textTransform: 'uppercase',

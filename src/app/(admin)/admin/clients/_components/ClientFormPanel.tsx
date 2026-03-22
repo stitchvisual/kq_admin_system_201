@@ -183,7 +183,7 @@ export function ClientFormPanel({
               <p
                 style={{
                   margin: 0,
-                  fontSize: '0.7rem',
+                  fontSize: 'var(--font-size-badge)',
                   color: '#7a5a3a',
                   lineHeight: 1.45,
                 }}
