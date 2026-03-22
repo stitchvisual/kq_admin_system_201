@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { colors, typography } from '@/styles/botanical';
+import { colors } from '@/styles/botanical';
+import { SectionLabel } from '@/components/shared/SectionLabel';
 
 interface DataTableProps {
   children: React.ReactNode;
@@ -23,24 +24,6 @@ export function DataTable({ children, className }: DataTableProps) {
   );
 }
 
-interface DataTableHeaderLabelProps {
-  children: React.ReactNode;
-  className?: string;
-}
-
-export function DataTableHeaderLabel({ children, className }: DataTableHeaderLabelProps) {
-  return (
-    <span
-      className={cn(className)}
-      style={{
-        fontSize: typography.sizes.label,
-        fontWeight: typography.weights.bold,
-        letterSpacing: typography.letterSpacing.label,
-        textTransform: 'uppercase',
-        color: colors.muted,
-      } as React.CSSProperties}
-    >
-      {children}
-    </span>
-  );
+export function DataTableHeaderLabel(props: React.ComponentProps<typeof SectionLabel>) {
+  return <SectionLabel as="span" noMargin {...props} />;
 }

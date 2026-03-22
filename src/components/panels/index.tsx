@@ -99,13 +99,7 @@ export function PanelContent({ children }: { children: React.ReactNode }) {
 
 /* ─── Section label ─────────────────────────────────────────────────────── */
 
-export function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[10px] font-medium uppercase tracking-[0.07em] text-muted-foreground mb-1.5">
-      {children}
-    </p>
-  );
-}
+export { SectionLabel } from '@/components/shared/SectionLabel';
 
 /* ─── Meta row (label + value, for divide-y sections) ─────────────────────── */
 
