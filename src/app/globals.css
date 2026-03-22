@@ -74,6 +74,21 @@
   --animate-duration-500: 500ms;
   --animate-duration-700: 700ms;
 
+  /* Panel accent bars */
+  --panel-accent-invoice: hsl(32 28% 63%);   /* warm sand/amber */
+  --panel-accent-client: hsl(130 13% 50%);   /* sage green = primary */
+  --panel-accent-delete: hsl(0 50% 50%);     /* destructive red */
+
+  /* Panel motion */
+  --panel-slide-duration: 280ms;
+  --panel-fade-duration: 200ms;
+  --panel-spring: cubic-bezier(0.16, 1, 0.3, 1);
+  --panel-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Sheet (mobile bottom panel) */
+  --sheet-radius: 20px;
+  --sheet-handle-color: hsl(37 18% 80%);
+
   --font-heading: "Playfair Display", serif;
   --font-body: "Source Sans 3", sans-serif;
 
@@ -89,51 +104,12 @@
   --shadow-lift: 0 12px 32px -8px rgba(62, 44, 28, 0.16), 0 4px 12px -2px rgba(62, 44, 28, 0.10);
   --shadow-card: 0 1px 3px rgba(62, 44, 28, 0.06), 0 2px 8px rgba(62, 44, 28, 0.04);
   --shadow-card-hover: 0 4px 16px -2px rgba(62, 44, 28, 0.12), 0 8px 24px -4px rgba(62, 44, 28, 0.08);
-}
 
-/* ============================================================================
-   DARK MODE OVERRIDES - Moonlit Garden Theme
-   ============================================================================ */
-
-.dark {
-  /* Backgrounds - warm charcoals instead of pure black */
-  --color-background: 30 10% 14%;
-  --color-foreground: 40 20% 92%;
-  --color-card: 30 8% 18%;
-  --color-card-foreground: 40 20% 92%;
-  --color-popover: 30 8% 18%;
-  --color-popover-foreground: 40 20% 92%;
-  
-  /* Primary accent - lighter sage for dark mode contrast */
-  --color-primary: 130 20% 55%;
-  --color-primary-foreground: 0 0% 100%;
-  --color-secondary: 30 8% 22%;
-  --color-secondary-foreground: 40 20% 92%;
-  --color-muted: 30 8% 22%;
-  --color-muted-foreground: 30 10% 55%;
-  --color-accent: 130 20% 55%;
-  --color-accent-foreground: 0 0% 100%;
-  
-  /* Status colors unchanged - they work in both modes */
-  --color-destructive: 0 84.2% 60.2%;
-  --color-destructive-foreground: 0 0% 100%;
-  
-  /* Borders - visible but subtle in dark mode */
-  --color-border: 30 8% 28%;
-  --color-input: 30 8% 28%;
-  --color-ring: 130 20% 55%;
-  --color-interactive: 12 47% 58%;
-  --color-warm-white: 30 8% 18%;
-  --color-soft-cream: 30 8% 22%;
-  --color-amber: 36 65% 56%;
-  
-  /* Darker shadows for dark mode */
-  --shadow-soft: 0 2px 8px -2px rgba(0, 0, 0, 0.4), 0 4px 16px -4px rgba(0, 0, 0, 0.3);
-  --shadow-soft-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 8px 24px -4px rgba(0, 0, 0, 0.35);
-  --shadow-soft-lg: 0 8px 24px -4px rgba(0, 0, 0, 0.55), 0 16px 32px -8px rgba(0, 0, 0, 0.4);
-  --shadow-lift: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.45);
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
-  --shadow-card-hover: 0 4px 16px -2px rgba(0, 0, 0, 0.45), 0 8px 24px -4px rgba(0, 0, 0, 0.35);
+  /* Semantic chip tokens (FilterChip, date range selectors) */
+  --color-chip-border: hsl(34 22% 74%);
+  --color-chip-bg: hsl(42 26% 92%);
+  --color-chip-bg-hover: hsl(42 26% 87%);
+  --color-chip-text: hsl(145 15% 28%);
 }
 
 body {
