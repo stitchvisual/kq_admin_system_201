@@ -2,7 +2,8 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+// Prefer non-pooling URL for serverless postgres driver, fall back to pooled URL
+const connectionString = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL || process.env.DATABASE_URL;
 
 if (!connectionString) {
   throw new Error("Database connection string not found. Please set POSTGRES_URL or DATABASE_URL environment variable.");
