@@ -28,12 +28,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${playfairDisplay.variable} ${sourceSans3.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${playfairDisplay.variable} ${sourceSans3.variable}`} style={{ colorScheme: 'light' }} suppressHydrationWarning>
       <body className="font-body antialiased">
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          defaultTheme="light"
+          forcedTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <div className="paper-grain" aria-hidden="true" />

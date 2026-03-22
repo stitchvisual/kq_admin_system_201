@@ -21,8 +21,6 @@ import { cn } from '@/lib/utils';
 import type { InvoiceWithClient, ClientSessionGroup as ClientSessionGroupType, UninvoicedSession } from '@/repositories/invoices.repository';
 import { StatCard, StatCardGrid } from '@/components/shared/StatCard';
 import { EmptyInvoices } from '@/components/botanical';
-import { colors, shadows, animations } from '@/styles/botanical';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
 import {
   InvoiceRow as InvoiceRowComponent,
   InvoiceDetailPanel,
@@ -30,7 +28,7 @@ import {
   BulkMarkPaidModal,
   SessionSelectionBar,
   ClientSessionGroup as ClientSessionGroupComponent,
-  DateRangeQuickSelect,
+  GenerateDateRangeSelector,
 } from '@/components/invoices';
 
 // ============================================================================
@@ -130,6 +128,7 @@ export default function UnifiedInvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithClient | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>('empty');
   const [panelVisible, setPanelVisible] = useState(false);
+  const [panelClosing, setPanelClosing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -156,6 +155,8 @@ export default function UnifiedInvoicesPage() {
   const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
   const [travelKmMap, setTravelKmMap] = useState<Map<string, number | null>>(new Map());
   const [generating, setGenerating] = useState(false);
+
+  const panelOpen = panelMode !== 'empty';
 
   // --- Computed values ---
   const selectedInvoices = invoices.filter(inv => selectedIds.has(inv.id));
@@ -284,15 +285,18 @@ export default function UnifiedInvoicesPage() {
 
   // --- Panel operations ---
   const openPanel = (mode: PanelMode) => {
+    setPanelClosing(false);
     setPanelMode(mode);
-    setTimeout(() => setPanelVisible(true), 10);
+    setTimeout(() => setPanelVisible(true), 75);
   };
 
   const closePanel = () => {
     setPanelVisible(false);
+    setPanelClosing(true);
     setTimeout(() => {
       setSelectedInvoice(null);
       setPanelMode('empty');
+      setPanelClosing(false);
     }, 300);
   };
 
@@ -612,7 +616,12 @@ export default function UnifiedInvoicesPage() {
       {/* BODY */}
       <div className="flex flex-1 overflow-hidden">
         {/* MAIN CONTENT */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div
+          className={cn(
+            'flex-1 overflow-y-auto p-6',
+            panelOpen && 'max-md:overflow-hidden'
+          )}
+        >
           {/* Summary Stats */}
           <StatCardGrid>
             <StatCard
@@ -663,48 +672,38 @@ export default function UnifiedInvoicesPage() {
           </StatCardGrid>
 
           {/* Tab Navigation */}
-          <div
-            className="mb-6 flex items-center gap-0.5 p-1 rounded-lg"
-            style={{
-              background: colors.mutedBg,
-              border: `1px solid ${colors.primary}`,
-            }}
-          >
+          <div className="mb-6 flex items-center gap-0.5 p-1 rounded-lg bg-mutedBg border border-[hsl(34_22%_74%)]">
             <button
               onClick={() => setActiveTab('invoices')}
-              className="h-9 px-4 rounded-md text-sm font-semibold transition-all cursor-pointer flex items-center gap-2"
-              style={{
-                background: activeTab === 'invoices' ? colors.card : 'transparent',
-                color: activeTab === 'invoices' ? colors.primaryBase : colors.secondary,
-                boxShadow: activeTab === 'invoices' ? shadows.subtle : 'none',
-                transition: animations.default,
-              }}
+              className={cn(
+                'h-9 px-4 rounded-md text-sm font-medium transition-all cursor-pointer flex items-center gap-2',
+                activeTab === 'invoices'
+                  ? 'bg-card text-foreground font-semibold shadow-sm'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground'
+              )}
             >
               <FileText size={15} />
               Invoices
             </button>
             <button
               onClick={() => setActiveTab('generate')}
-              className="h-9 px-4 rounded-md text-sm font-semibold transition-all cursor-pointer flex items-center gap-2"
-              style={{
-                background: activeTab === 'generate' ? colors.card : 'transparent',
-                color: activeTab === 'generate' ? colors.primaryBase : colors.secondary,
-                boxShadow: activeTab === 'generate' ? shadows.subtle : 'none',
-                transition: animations.default,
-              }}
+              className={cn(
+                'h-9 px-4 rounded-md text-sm font-medium transition-all cursor-pointer flex items-center gap-2',
+                activeTab === 'generate'
+                  ? 'bg-card text-foreground font-semibold shadow-sm'
+                  : 'bg-transparent text-muted-foreground hover:text-foreground'
+              )}
             >
               <Plus size={15} />
               Generate
               {totalUninvoicedSessions > 0 && (
                 <span
-                  className="px-2 py-0.5 rounded-full text-[11px] font-bold"
-                  style={{
-                    background: activeTab === 'generate'
-                      ? colors.primaryBg
-                      : 'transparent',
-                    color: colors.primaryBase,
-                    border: `1px solid ${colors.primary}`,
-                  }}
+                  className={cn(
+                    'px-2 py-0.5 rounded-full text-[11px] font-bold',
+                    activeTab === 'generate'
+                      ? 'bg-primary/10 text-primary border border-primary/30'
+                      : 'bg-transparent text-primary border border-primary/50'
+                  )}
                 >
                   {totalUninvoicedSessions}
                 </span>
@@ -767,17 +766,44 @@ export default function UnifiedInvoicesPage() {
           )}
         </div>
 
-        {/* DETAIL PANEL */}
+        {/* DETAIL PANEL — mobile backdrop */}
+        {panelOpen && (
+          <div
+            className={cn(
+              'md:hidden fixed inset-0 z-40 bg-foreground/30 backdrop-blur-[2px]',
+              'transition-opacity duration-200',
+              panelVisible ? 'opacity-100' : 'opacity-0'
+            )}
+            onClick={closePanel}
+            aria-hidden
+          />
+        )}
+
+        {/* DETAIL PANEL — desktop column + mobile bottom sheet */}
         <aside
           className={cn(
-            'relative flex flex-col overflow-hidden transition-all duration-[280ms] ease-out',
-            panelMode === 'empty' ? 'w-0 border-none' : 'w-[420px] flex-shrink-0 bg-warm-white border-l border-primary'
+            'relative flex flex-col overflow-hidden bg-card flex-shrink-0',
+            'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] rounded-t-[20px] rounded-b-none border-t border-primary',
+            'md:border-t-0 md:border-l md:border-primary',
+            'translate-y-full',
+            'transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+            'md:relative md:inset-auto md:z-auto md:max-h-none md:h-full md:rounded-none md:border-t-0',
+            'md:translate-y-0',
+            'md:transition-[width,opacity] md:duration-[280ms] md:ease-[cubic-bezier(0.16,1,0.3,1)]',
+            (!panelOpen || panelClosing) && 'pointer-events-none',
+            panelOpen && !panelClosing && (panelVisible ? 'translate-y-0' : 'translate-y-full'),
+            (!panelOpen || panelClosing) && 'md:w-0 md:opacity-0 md:border-l-0 md:overflow-hidden',
+            panelOpen && !panelClosing && 'md:w-[360px] md:opacity-100'
           )}
         >
           <div
             className={cn(
-              'h-full w-[420px] flex flex-col transition-all duration-[240ms] ease-out',
-              panelVisible ? 'translate-x-0 opacity-100' : 'translate-x-[20px] opacity-0'
+              'w-full md:w-[360px] h-full min-h-0 flex flex-col',
+              'transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]',
+              panelVisible ? 'md:delay-75' : 'md:delay-0',
+              panelVisible
+                ? 'translate-x-0 opacity-100'
+                : 'max-md:translate-x-0 max-md:opacity-100 md:translate-x-4 md:opacity-0'
             )}
           >
             {panelMode === 'view' && selectedInvoice && (
@@ -872,44 +898,36 @@ function GenerateTabContent({
   return (
     <div className="flex flex-col h-full pb-20">
       {/* Date range and settings row */}
-      <div className="space-y-3 mb-4">
-        <DateRangeQuickSelect
-          startDate={startDate}
-          endDate={endDate}
-          onStartDateChange={onStartDateChange}
-          onEndDateChange={onEndDateChange}
-        />
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="space-y-4 mb-4">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Session period</label>
+          <GenerateDateRangeSelector
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={onStartDateChange}
+            onEndDateChange={onEndDateChange}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Date Range</label>
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onStartDateChange={onStartDateChange}
-              onEndDateChange={onEndDateChange}
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Due Date</label>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Due Date</label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={e => onDueDateChange(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg border border-primary bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full h-9 px-3 rounded-lg border border-[hsl(34_22%_74%)] bg-card text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
               />
-            </div>
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Notes (optional)</label>
-              <input
-                type="text"
-                value={notes}
-                onChange={e => onNotesChange(e.target.value)}
-                placeholder="Invoice notes..."
-                className="w-full h-9 px-3 rounded-lg border border-primary bg-background text-sm outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Notes (optional)</label>
+            <input
+              type="text"
+              value={notes}
+              onChange={e => onNotesChange(e.target.value)}
+              placeholder="Invoice notes..."
+              className="w-full h-9 px-3 rounded-lg border border-[hsl(34_22%_74%)] bg-card text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+            />
           </div>
         </div>
       </div>
@@ -936,11 +954,11 @@ function GenerateTabContent({
           ))}
         </div>
       ) : (
-        <div className="text-center py-12">
-          <Calendar size={32} className="mx-auto mb-2 opacity-50 text-muted-foreground" />
-          <p className="text-muted-foreground mb-2">No completed, uninvoiced sessions in this date range</p>
-          <p className="text-xs text-muted-foreground/70">
-            Try expanding the date range above. Sessions must be marked as "completed" before they can be invoiced.
+        <div className="flex flex-col items-center justify-center py-12 text-center empty-state">
+          <Calendar size={36} className="mb-3 text-muted-foreground/60" />
+          <p className="font-body text-sm font-medium text-foreground mb-1">No completed, uninvoiced sessions in this date range</p>
+          <p className="text-xs text-muted-foreground max-w-sm">
+            Try expanding the date range above. Sessions must be marked as &quot;completed&quot; before they can be invoiced.
           </p>
         </div>
       )}
@@ -1019,25 +1037,17 @@ function InvoicesTabContent({
   return (
     <>
       {/* Status Tabs */}
-      <div
-        className="mb-5 flex items-center gap-0.5 p-1 rounded-lg"
-        style={{
-          background: colors.mutedBg,
-          border: `1px solid ${colors.primary}`,
-        }}
-      >
+      <div className="mb-5 flex items-center gap-0.5 p-1 rounded-lg bg-mutedBg border border-[hsl(34_22%_74%)]">
         {statusTabs.map(tab => (
           <button
             key={tab.value}
             onClick={() => setStatusFilter(tab.value)}
-            className="h-8 px-3.5 rounded-md text-sm transition-all cursor-pointer"
-            style={{
-              background: statusFilter === tab.value ? colors.card : 'transparent',
-              color: statusFilter === tab.value ? colors.primaryBase : colors.muted,
-              fontWeight: statusFilter === tab.value ? 600 : 500,
-              boxShadow: statusFilter === tab.value ? shadows.subtle : 'none',
-              transition: animations.default,
-            }}
+            className={cn(
+              'h-8 px-3.5 rounded-md text-sm transition-all cursor-pointer',
+              statusFilter === tab.value
+                ? 'bg-card text-foreground font-semibold shadow-sm'
+                : 'bg-transparent text-muted-foreground hover:text-foreground'
+            )}
           >
             {tab.label}
           </button>
@@ -1071,13 +1081,13 @@ function InvoicesTabContent({
             )}
             <button
               onClick={onBulkDownload}
-              className="h-8 px-3 rounded-lg border border-primary bg-transparent text-xs font-semibold cursor-pointer flex items-center gap-1.5 hover:bg-muted"
+              className="h-8 px-3 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] text-xs font-semibold cursor-pointer flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)]"
             >
               <Download size={14} /> Download PDFs
             </button>
             <button
               onClick={onClearSelection}
-              className="h-8 px-3 rounded-lg border border-primary bg-transparent text-xs font-semibold cursor-pointer hover:bg-muted"
+              className="h-8 px-3 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] text-xs font-semibold cursor-pointer hover:bg-[hsl(42_26%_87%)]"
             >
               Clear
             </button>
@@ -1141,7 +1151,7 @@ function InvoicesTabContent({
           <button
             onClick={() => onPageChange(pagination.page - 1)}
             disabled={pagination.page === 1}
-            className="w-8 h-8 rounded-lg border border-primary bg-transparent flex items-center justify-center disabled:opacity-50 hover:bg-muted transition-colors"
+            className="w-8 h-8 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex items-center justify-center text-[hsl(145_15%_35%)] disabled:opacity-50 hover:bg-[hsl(42_26%_87%)] transition-colors"
           >
             <ChevronLeft size={14} />
           </button>
@@ -1153,7 +1163,7 @@ function InvoicesTabContent({
                 'w-8 h-8 rounded-lg border text-sm font-medium transition-colors',
                 pagination.page === i + 1
                   ? 'bg-primary text-white border-primary'
-                  : 'bg-transparent border-primary hover:bg-muted'
+                  : 'border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)]'
               )}
             >
               {i + 1}
@@ -1162,7 +1172,7 @@ function InvoicesTabContent({
           <button
             onClick={() => onPageChange(pagination.page + 1)}
             disabled={pagination.page === pagination.totalPages}
-            className="w-8 h-8 rounded-lg border border-primary bg-transparent flex items-center justify-center disabled:opacity-50 hover:bg-muted transition-colors"
+            className="w-8 h-8 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex items-center justify-center text-[hsl(145_15%_35%)] disabled:opacity-50 hover:bg-[hsl(42_26%_87%)] transition-colors"
           >
             <ChevronRight size={14} />
           </button>

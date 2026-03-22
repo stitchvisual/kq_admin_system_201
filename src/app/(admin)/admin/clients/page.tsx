@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Plus, Search, Leaf, Mail, Phone, UserCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/shared/PageHeader';
+import { Button } from '@/components/ui/button';
 import { RateCodeStatus } from './_components/RateCodeStatus';
 import { ClientDetailPanel } from './_components/ClientDetailPanel';
 import { ClientFormPanel } from './_components/ClientFormPanel';
@@ -12,6 +13,7 @@ import type { Client } from '@/db/schema/clients';
 import type { NdisPricing } from '@/db/schema/ndis_pricing';
 import { colors } from '@/styles/botanical';
 import { EmptyClients, DataTable, DataTableHeaderLabel } from '@/components/botanical';
+import { cn } from '@/lib/utils';
 
 type PanelMode = 'empty' | 'view' | 'new' | 'edit' | 'deleteConfirm';
 
@@ -106,6 +108,7 @@ export default function ClientsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [panelMode, setPanelMode] = useState<PanelMode>('empty');
   const [panelVisible, setPanelVisible] = useState(false);
+  const [panelClosing, setPanelClosing] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [clientDetail, setClientDetail] = useState<any>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
@@ -184,17 +187,20 @@ export default function ClientsPage() {
   };
 
   const openPanel = (mode: PanelMode) => {
+    setPanelClosing(false);
     setPanelMode(mode);
-    setTimeout(() => setPanelVisible(true), 10);
+    setTimeout(() => setPanelVisible(true), 75);
   };
 
   const closePanel = () => {
     setPanelVisible(false);
+    setPanelClosing(true);
     setTimeout(() => {
       setSelectedClient(null);
       setClientDetail(null);
       setRelatedCounts(null);
       setPanelMode('empty');
+      setPanelClosing(false);
       setFormData({
         name: '',
         email: '',
@@ -316,6 +322,8 @@ export default function ClientsPage() {
     }
   };
 
+  const panelOpen = panelMode !== 'empty';
+
   const handleDelete = async () => {
     if (!selectedClient) return;
     setDeleting(true);
@@ -350,14 +358,12 @@ export default function ClientsPage() {
         title="Clients"
         subtitle="Manage your client information"
         action={
-          <button
-            type="button"
-            onClick={openAddClient}
-            className="h-9 max-w-full min-w-0 shrink px-4 rounded-lg bg-primary hover:bg-primary/90 text-white cursor-pointer text-xs font-semibold flex items-center gap-1.5 font-body transition-colors duration-150 overflow-hidden"
-          >
-            <Plus size={15} className="shrink-0" />
-            <span className="min-w-0 truncate">Add Client</span>
-          </button>
+          clients.length > 0 ? (
+            <Button onClick={openAddClient} size="sm" className="gap-1.5">
+              <Plus size={14} />
+              Add Client
+            </Button>
+          ) : undefined
         }
       />
 
@@ -365,21 +371,22 @@ export default function ClientsPage() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* MAIN CONTENT */}
-        <div className="flex-1 min-w-0 overflow-auto p-6 md:p-8">
+        <div
+          className={cn(
+            'flex-1 min-w-0 overflow-auto p-6 md:p-8',
+            panelOpen && 'max-md:overflow-hidden'
+          )}
+        >
           
           {/* Search */}
-          <div className="relative mb-8 max-w-full md:max-w-[500px]">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2"
-              size={16}
-              style={{ color: colors.faint, marginTop: -8 }}
-            />
+          <div className="mb-8 max-w-full md:max-w-[500px] grid grid-cols-[auto_1fr] items-center gap-2 h-[38px] px-3 rounded-lg border border-primary bg-card font-body focus-within:ring-2 focus-within:ring-primary/20 focus-within:ring-offset-0 transition-shadow duration-150">
+            <Search size={16} className="shrink-0" style={{ color: colors.faint }} />
             <input
               type="text"
               placeholder="Search clients by name..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full h-[38px] pl-9 pr-3 rounded-lg border border-primary bg-card text-sm text-foreground outline-none box-border font-body transition-colors duration-150 focus:ring-2 focus:ring-primary/20"
+              className="w-full min-w-0 h-full bg-transparent border-0 py-0 pl-0 pr-1 text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
 
@@ -486,7 +493,7 @@ export default function ClientsPage() {
               <button
                 onClick={() => setPage(prev => Math.max(1, prev - 1))}
                 disabled={page === 1}
-                className="w-8 h-8 rounded-lg border border-primary bg-transparent cursor-pointer flex items-center justify-center text-body transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/7"
+                className="w-8 h-8 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] cursor-pointer flex items-center justify-center text-[hsl(145_15%_35%)] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[hsl(42_26%_87%)]"
               >
                 <ChevronLeft size={14} />
               </button>
@@ -497,7 +504,7 @@ export default function ClientsPage() {
                   className={`w-8 h-8 rounded-lg border text-sm font-medium cursor-pointer flex items-center justify-center font-body transition-all duration-150 ${
                     page === i + 1
                       ? 'bg-primary text-white border-primary'
-                      : 'bg-transparent text-body border-primary hover:bg-primary/7'
+                      : 'border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)]'
                   }`}
                 >
                   {i + 1}
@@ -506,7 +513,7 @@ export default function ClientsPage() {
               <button
                 onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
                 disabled={page === totalPages}
-                className="w-8 h-8 rounded-lg border border-primary bg-transparent cursor-pointer flex items-center justify-center text-body transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-primary/7"
+                className="w-8 h-8 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] cursor-pointer flex items-center justify-center text-[hsl(145_15%_35%)] transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[hsl(42_26%_87%)]"
               >
                 <ChevronRight size={14} />
               </button>
@@ -514,18 +521,45 @@ export default function ClientsPage() {
           )}
         </div>
 
-        {/* RIGHT DETAIL PANEL - Responsive: full-screen on mobile, 360px sidebar on desktop */}
+        {/* Client panel — mobile backdrop */}
+        {panelOpen && (
+          <div
+            className={cn(
+              'md:hidden fixed inset-0 z-40 bg-foreground/30 backdrop-blur-[2px]',
+              'transition-opacity duration-200',
+              panelVisible ? 'opacity-100' : 'opacity-0'
+            )}
+            onClick={closePanel}
+            aria-hidden
+          />
+        )}
+
+        {/* Client panel — desktop column + mobile bottom sheet */}
         <aside
-          className={`fixed inset-y-0 right-0 md:relative md:inset-auto md:w-[360px] bg-card border-l border-primary flex flex-col overflow-hidden transition-transform duration-280 ease-out z-40 ${
-            panelMode === 'empty' ? 'translate-x-full md:w-0 md:border-l-0' : 'translate-x-0'
-          }`}
-          style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+          className={cn(
+            'relative flex flex-col overflow-hidden bg-card flex-shrink-0',
+            'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] rounded-t-[20px] rounded-b-none border-t border-primary',
+            'md:border-t-0 md:border-l md:border-primary',
+            'translate-y-full',
+            'transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+            'md:relative md:inset-auto md:z-auto md:max-h-none md:h-full md:rounded-none',
+            'md:translate-y-0',
+            'md:transition-[width,opacity] md:duration-[280ms] md:ease-[cubic-bezier(0.16,1,0.3,1)]',
+            (!panelOpen || panelClosing) && 'pointer-events-none',
+            panelOpen && !panelClosing && (panelVisible ? 'translate-y-0' : 'translate-y-full'),
+            (!panelOpen || panelClosing) && 'md:w-0 md:opacity-0 md:border-l-0 md:overflow-hidden',
+            panelOpen && !panelClosing && 'md:w-[360px] md:opacity-100'
+          )}
         >
           <div
-            className={`w-full md:w-[360px] flex flex-col h-full opacity-0 transition-opacity duration-240 ${
-              panelVisible ? 'opacity-100 translate-x-0' : 'translate-x-5'
-            }`}
-            style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+            className={cn(
+              'w-full md:w-[360px] h-full min-h-0 flex flex-col',
+              'transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]',
+              panelVisible ? 'md:delay-75' : 'md:delay-0',
+              panelVisible
+                ? 'translate-x-0 opacity-100'
+                : 'max-md:translate-x-0 max-md:opacity-100 md:translate-x-4 md:opacity-0'
+            )}
           >
             {panelMode === 'view' && clientDetail && selectedClient && (
               <ClientDetailPanel
@@ -534,7 +568,6 @@ export default function ClientsPage() {
                 recentAppointments={clientDetail.recent_appointments}
                 invoices={clientDetail.invoices}
                 outstandingBalance={clientDetail.outstanding_balance}
-                stats={clientDetail.stats}
                 onClose={closePanel}
                 onEdit={openEditClient}
                 onDelete={openDeleteConfirm}
@@ -564,14 +597,6 @@ export default function ClientsPage() {
               />
             )}
           </div>
-
-          {/* Mobile backdrop */}
-          {panelMode !== 'empty' && (
-            <div
-              className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-30"
-              onClick={closePanel}
-            />
-          )}
         </aside>
       </div>
     </div>

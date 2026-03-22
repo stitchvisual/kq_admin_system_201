@@ -7,3 +7,4 @@ export { SessionSelectionBar } from './SessionSelectionBar';
 export { ClientSessionGroup } from './ClientSessionGroup';
 export { TravelKmInput } from './TravelKmInput';
 export { DateRangeQuickSelect } from './DateRangeQuickSelect';
+export { GenerateDateRangeSelector } from './GenerateDateRangeSelector';

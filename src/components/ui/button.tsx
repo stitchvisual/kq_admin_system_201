@@ -14,7 +14,7 @@ const buttonVariants = cva(
         destructive:
           "rounded-md bg-destructive text-destructive-foreground shadow-soft hover:bg-destructive/90 hover:shadow-lift hover:-translate-y-0.5 active:translate-y-0",
         outline:
-          "rounded-md border-2 border-[hsl(130,13%,56%)] bg-transparent text-[hsl(130,13%,56%)] hover:bg-[hsl(130,13%,56%)]/10 hover:-translate-y-0.5 active:translate-y-0",
+          "rounded-md border border-[hsl(130_13%_62%)] bg-[hsl(130_13%_50%/0.10)] text-[hsl(130_13%_32%)] hover:bg-[hsl(130_13%_50%/0.18)] hover:border-[hsl(130_13%_50%)] hover:-translate-y-0.5 active:translate-y-0",
         secondary:
           "rounded-md bg-mutedBg text-[hsl(145,15%,20%)] shadow-soft hover:bg-mutedBg/90 hover:shadow-lift hover:-translate-y-0.5 active:translate-y-0",
         ghost: "rounded-md hover:bg-[hsl(130,13%,56%)]/10 hover:text-[hsl(130,13%,56%)]",

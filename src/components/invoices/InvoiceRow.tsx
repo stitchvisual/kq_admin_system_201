@@ -186,7 +186,7 @@ export function InvoiceRow({
             onDownload();
           }}
           disabled={!!pdfLoading}
-          className="w-7 h-7 rounded-md border border-primary bg-transparent flex items-center justify-center text-muted-foreground hover:bg-muted disabled:opacity-50 transition-colors"
+          className="w-7 h-7 rounded-md border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex items-center justify-center text-[hsl(145_15%_35%)] hover:bg-[hsl(42_26%_87%)] disabled:opacity-50 transition-colors"
           title="Download PDF"
         >
           {pdfLoading ? (
@@ -201,7 +201,7 @@ export function InvoiceRow({
             e.stopPropagation();
             setShowOverflow(!showOverflow);
           }}
-          className="w-7 h-7 rounded-md border border-primary bg-transparent flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+          className="w-7 h-7 rounded-md border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex items-center justify-center text-[hsl(145_15%_35%)] hover:bg-[hsl(42_26%_87%)] transition-colors"
         >
           <MoreHorizontal size={14} />
         </button>

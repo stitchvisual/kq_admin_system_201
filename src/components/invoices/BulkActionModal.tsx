@@ -147,7 +147,7 @@ export function BulkActionModal({
           <button
             onClick={onClose}
             disabled={loading}
-            className="h-9 px-4 rounded-lg border border-primary bg-transparent text-sm font-medium text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            className="h-9 px-4 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-sm font-medium text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)] transition-colors disabled:opacity-50"
           >
             Cancel
           </button>

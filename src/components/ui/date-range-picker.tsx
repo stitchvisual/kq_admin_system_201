@@ -17,6 +17,9 @@ interface DateRangePickerProps {
   minDate?: string;
   maxDate?: string;
   presets?: boolean;
+  /** When true, renders only the calendar/presets (no trigger or dropdown wrapper) */
+  inline?: boolean;
+  onClose?: () => void;
   className?: string;
 }
 
@@ -139,9 +142,11 @@ export function DateRangePicker({
   minDate,
   maxDate,
   presets = true,
+  inline = false,
+  onClose,
   className,
 }: DateRangePickerProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(inline);
   const [selectingEnd, setSelectingEnd] = useState(false);
   const [leftMonth, setLeftMonth] = useState(() => {
     const d = parseInputDate(startDate) || new Date();
@@ -158,8 +163,9 @@ export function DateRangePicker({
   const min = minDate ? parseInputDate(minDate) : null;
   const max = maxDate ? parseInputDate(maxDate) : null;
 
-  // Close on outside click
+  // Close on outside click (dropdown mode only)
   useEffect(() => {
+    if (inline) return;
     const handleClick = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setIsOpen(false);
@@ -167,7 +173,7 @@ export function DateRangePicker({
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
+  }, [inline]);
 
   // Sync right month when selecting - use startDate string to avoid infinite loop
   useEffect(() => {
@@ -238,55 +244,70 @@ export function DateRangePicker({
   const DOW_LABELS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
   const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+  const handlePresetWithClose = (preset: DatePreset) => {
+    handlePreset(preset);
+    if (inline && onClose) onClose();
+  };
+
+  const handleDayClickWithClose = (year: number, month: number, day: number) => {
+    const clicked = new Date(year, month, day);
+    const wasSelectingEnd = selectingEnd;
+    handleDayClick(year, month, day);
+    if (inline && onClose && wasSelectingEnd && start && clicked >= start) onClose();
+  };
+
   return (
     <div ref={containerRef} className={cn('relative', className)}>
-      {/* Trigger Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          'w-full h-10 px-3 rounded-lg border flex items-center justify-between gap-2',
-          'text-sm transition-all duration-200',
-          'hover:bg-muted/50 focus:ring-2 focus:ring-ring focus:ring-offset-2'
-        )}
-        style={{
-          borderColor: colors.primary,
-          background: colors.card,
-          color: start ? colors.heading : colors.muted,
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <Calendar size={16} style={{ color: colors.muted }} />
-          <span>
-            {start ? (
-              end ? (
-                `${formatDisplayDate(startDate)} — ${formatDisplayDate(endDate)}`
+      {!inline && (
+        <button
+          type="button"
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            'w-full h-9 px-3 rounded-lg border flex items-center justify-between gap-2',
+            'text-sm transition-all duration-200',
+            'border-[hsl(34_22%_74%)] bg-card',
+            start ? 'text-foreground' : 'text-muted-foreground',
+            'hover:bg-[hsl(42_26%_98%)] focus:ring-2 focus:ring-primary/20 focus:border-primary'
+          )}
+        >
+          <div className="flex items-center gap-2">
+            <Calendar size={16} className="text-muted-foreground shrink-0" />
+            <span>
+              {start ? (
+                end ? (
+                  `${formatDisplayDate(startDate)} — ${formatDisplayDate(endDate)}`
+                ) : (
+                  `${formatDisplayDate(startDate)} — Select end`
+                )
               ) : (
-                `${formatDisplayDate(startDate)} — Select end`
-              )
-            ) : (
-              'Select date range'
-            )}
-          </span>
-        </div>
-        <ChevronRight
-          size={16}
-          style={{ color: colors.muted, transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 200ms' }}
-        />
-      </button>
+                'Select date range'
+              )}
+            </span>
+          </div>
+          <ChevronRight
+            size={16}
+            className={cn('text-muted-foreground shrink-0 transition-transform duration-200', isOpen && 'rotate-90')}
+          />
+        </button>
+      )}
 
-      {/* Dropdown */}
       {isOpen && (
         <div
-          className="absolute right-0 z-50 mt-2 rounded-xl shadow-lg border overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
-          style={{
-            background: colors.card,
-            borderColor: colors.primary,
-            boxShadow: shadows.hover,
-            minWidth: '520px',
-          }}
+          className={cn(
+            'overflow-hidden animate-in fade-in-0 duration-200',
+            !inline && 'absolute right-0 z-50 mt-2 rounded-xl shadow-lg border'
+          )}
+          style={
+            !inline
+              ? {
+                  background: colors.card,
+                  borderColor: colors.primary,
+                  boxShadow: shadows.hover,
+                  minWidth: '520px',
+                }
+              : undefined
+          }
         >
-          {/* Presets */}
           {presets && (
             <div
               className="flex gap-1.5 p-3 border-b"
@@ -296,7 +317,7 @@ export function DateRangePicker({
                 <button
                   key={preset.label}
                   type="button"
-                  onClick={() => handlePreset(preset)}
+                  onClick={() => (inline ? handlePresetWithClose(preset) : handlePreset(preset))}
                   className="h-7 px-2.5 rounded-md text-[11px] font-semibold transition-all duration-150 hover:scale-[1.02]"
                   style={{
                     background: colors.mutedBg,
@@ -349,7 +370,7 @@ export function DateRangePicker({
                     min={min}
                     max={max}
                     selectingEnd={selectingEnd}
-                    onClick={handleDayClick}
+                    onClick={inline ? handleDayClickWithClose : handleDayClick}
                   />
                 ))}
               </div>
@@ -395,7 +416,7 @@ export function DateRangePicker({
                     min={min}
                     max={max}
                     selectingEnd={selectingEnd}
-                    onClick={handleDayClick}
+                    onClick={inline ? handleDayClickWithClose : handleDayClick}
                   />
                 ))}
               </div>
@@ -416,6 +437,7 @@ export function DateRangePicker({
                 onStartDateChange('');
                 onEndDateChange('');
                 setSelectingEnd(false);
+                if (inline && onClose) onClose();
               }}
               className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors duration-150"
               style={{ color: colors.secondary }}
