@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, FileText, Send, CheckCircle, XCircle, Clock } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { AlertTriangle, FileText, Send, CheckCircle, XCircle } from 'lucide-react';
 import { invoiceStatus } from '@/styles/botanical';
+import { StatusBadge, type StatusConfig } from '@/components/ui/status-badge';
 
 export type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'cancelled';
 export type BadgeSize = 'sm' | 'md' | 'lg';
@@ -58,11 +58,8 @@ const statusConfig: Record<InvoiceStatus | 'overdue', {
   },
 };
 
-const sizeConfig: Record<BadgeSize, { fontSize: string; padding: string; iconSize: number }> = {
-  sm: { fontSize: '0.65rem', padding: '2px 8px', iconSize: 10 },
-  md: { fontSize: '0.72rem', padding: '3px 10px', iconSize: 12 },
-  lg: { fontSize: 'var(--font-size-meta)', padding: '4px 12px', iconSize: 14 },
-};
+const sizeToStatusBadgeSize = { sm: 'sm' as const, md: 'md' as const, lg: 'lg' as const };
+const iconSizes = { sm: 10, md: 12, lg: 14 } as const;
 
 export function InvoiceStatusBadge({
   status,
@@ -75,10 +72,9 @@ export function InvoiceStatusBadge({
 }: InvoiceStatusBadgeProps) {
   const overdue = status === 'issued' && dueDate && isOverdue(dueDate);
   const config = overdue ? statusConfig.overdue : statusConfig[status];
-  const sizeStyles = sizeConfig[size];
-  
   const Icon = config.icon;
-  
+  const badgeSize = sizeToStatusBadgeSize[size];
+
   let subtext = '';
   if (showSubtext) {
     if (overdue && dueDate) {
@@ -97,24 +93,14 @@ export function InvoiceStatusBadge({
   const displayStatus = overdue ? 'overdue' : status;
 
   return (
-    <span
-      className={cn('inline-flex items-center gap-1 font-semibold capitalize border rounded-full', className)}
-      style={{
-        fontSize: sizeStyles.fontSize,
-        padding: sizeStyles.padding,
-        background: config.bg,
-        color: config.text,
-        borderColor: config.border,
-      }}
-    >
-      {showIcon && <Icon size={sizeStyles.iconSize} />}
-      {displayStatus}
-      {showSubtext && subtext && (
-        <span style={{ fontWeight: 400, opacity: 0.8, marginLeft: 2 }}>
-          · {subtext}
-        </span>
-      )}
-    </span>
+    <StatusBadge
+      label={displayStatus}
+      config={config satisfies StatusConfig}
+      icon={showIcon ? <Icon size={iconSizes[size]} /> : undefined}
+      size={badgeSize}
+      suffix={showSubtext && subtext ? `· ${subtext}` : undefined}
+      className={className}
+    />
   );
 }
 
@@ -134,28 +120,26 @@ export function InvoiceStatusBadgeCompact({
   const overdue = status === 'issued' && dueDate && isOverdue(dueDate);
   const config = overdue ? statusConfig.overdue : statusConfig[status];
   const Icon = config.icon;
-  
-  const displayText = overdue && daysOverdue 
-    ? `${daysOverdue}d` 
-    : status === 'draft' ? 'DFT'
-    : status === 'issued' ? 'SNT'
-    : status === 'paid' ? 'PAID'
-    : status;
+
+  const displayText =
+    overdue && daysOverdue
+      ? `${daysOverdue}d`
+      : status === 'draft'
+        ? 'DFT'
+        : status === 'issued'
+          ? 'SNT'
+          : status === 'paid'
+            ? 'PAID'
+            : status;
 
   return (
-    <span
-      className={cn('inline-flex items-center gap-0.5 font-semibold uppercase border rounded-full', className)}
-      style={{
-        fontSize: '0.6rem',
-        padding: '2px 6px',
-        background: config.bg,
-        color: config.text,
-        borderColor: config.border,
-      }}
-    >
-      <Icon size={9} />
-      {displayText}
-    </span>
+    <StatusBadge
+      label={displayText}
+      config={config satisfies StatusConfig}
+      icon={<Icon size={9} />}
+      size="xs"
+      className={`uppercase gap-0.5 ${className ?? ''}`}
+    />
   );
 }
 

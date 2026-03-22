@@ -20,7 +20,7 @@ const FilterChip = React.forwardRef<HTMLButtonElement, FilterChipProps>(
           size === 'md' && 'px-3 py-1.5 text-sm',
           active
             ? 'bg-primary text-white shadow-sm'
-            : 'border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)]',
+            : 'border border-[var(--color-chip-border)] bg-[var(--color-chip-bg)] text-[var(--color-chip-text)] hover:bg-[var(--color-chip-bg-hover)]',
           className
         )}
         {...props}
