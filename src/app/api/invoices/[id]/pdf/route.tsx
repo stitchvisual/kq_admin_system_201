@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { renderToBuffer } from '@react-pdf/renderer';
 import { ApiResponse } from '@/lib/responses';
 import { invoicesService } from '@/services/invoices.service';
 import { requireAdmin } from '@/lib/auth';
-import { InvoicePDF } from '@/components/pdf/InvoicePDF';
+import { generateInvoicePdfBuffer } from '@/lib/invoice-pdf';
 
 // Must be after all imports — pins this route to the Node.js runtime.
 // @react-pdf/renderer uses native Node.js modules that webpack cannot bundle.
@@ -19,11 +18,7 @@ export async function GET(
     const { id } = await params;
     const invoice = await invoicesService.getById(id);
 
-    // Serialize to plain object to avoid React error #31 from DB types (Decimal, Date, etc.)
-    const plainInvoice = JSON.parse(JSON.stringify(invoice)) as typeof invoice;
-
-    // Generate PDF buffer server-side (returns Node Buffer, compatible with Response)
-    const buffer = await renderToBuffer(<InvoicePDF invoice={plainInvoice} />);
+    const buffer = await generateInvoicePdfBuffer(invoice);
 
     // Safe filename: escape quotes, use RFC 5987 for non-ASCII
     const safeName = String(invoice.invoice_number).replace(/["\\]/g, '');
