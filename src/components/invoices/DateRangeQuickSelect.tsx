@@ -2,8 +2,13 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import {
+  getOptionRange,
+  QUICK_OPTION_LABELS,
+  type QuickOption,
+} from '@/lib/date-range-utils';
 
-type QuickOption = 'thisWeek' | 'lastWeek' | 'thisMonth' | 'lastMonth' | 'last4Weeks';
+const DEFAULT_OPTIONS: QuickOption[] = ['thisWeek', 'lastWeek', 'thisMonth', 'last4Weeks'];
 
 interface DateRangeQuickSelectProps {
   startDate: string;
@@ -14,79 +19,12 @@ interface DateRangeQuickSelectProps {
   className?: string;
 }
 
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? 6 : day - 1;
-  d.setDate(d.getDate() - diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function formatDateForInput(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function addDays(date: Date, days: number): Date {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d;
-}
-
-function getOptionRange(option: QuickOption): { start: string; end: string } {
-  const today = new Date();
-  let start: Date;
-  let end: Date;
-
-  switch (option) {
-    case 'thisWeek':
-      start = getWeekStart(today);
-      end = today;
-      break;
-    case 'lastWeek':
-      start = getWeekStart(addDays(today, -7));
-      end = addDays(getWeekStart(today), -1);
-      break;
-    case 'thisMonth':
-      start = new Date(today.getFullYear(), today.getMonth(), 1);
-      end = today;
-      break;
-    case 'lastMonth':
-      start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      end = new Date(today.getFullYear(), today.getMonth(), 0);
-      break;
-    case 'last4Weeks':
-      start = addDays(getWeekStart(today), -21);
-      end = today;
-      break;
-    default:
-      start = today;
-      end = today;
-  }
-
-  return {
-    start: formatDateForInput(start),
-    end: formatDateForInput(end),
-  };
-}
-
-const optionLabels: Record<QuickOption, string> = {
-  thisWeek: 'This Week',
-  lastWeek: 'Last Week',
-  thisMonth: 'This Month',
-  lastMonth: 'Last Month',
-  last4Weeks: 'Last 4 Weeks',
-};
-
 export function DateRangeQuickSelect({
   startDate,
   endDate,
   onStartDateChange,
   onEndDateChange,
-  options = ['thisWeek', 'lastWeek', 'thisMonth', 'last4Weeks'],
+  options = DEFAULT_OPTIONS,
   className,
 }: DateRangeQuickSelectProps) {
   const handleOptionClick = (option: QuickOption) => {
@@ -112,10 +50,10 @@ export function DateRangeQuickSelect({
               'h-7 px-3 rounded-md text-xs font-medium transition-all',
               active
                 ? 'bg-primary text-white shadow-sm'
-                : 'border border-primary bg-transparent text-muted-foreground hover:bg-muted'
+                : 'border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)]'
             )}
           >
-            {optionLabels[option]}
+            {QUICK_OPTION_LABELS[option]}
           </button>
         );
       })}
