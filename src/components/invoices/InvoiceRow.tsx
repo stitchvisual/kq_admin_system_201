@@ -212,14 +212,14 @@ export function InvoiceRow({
               className="fixed inset-0 z-10"
               onClick={() => setShowOverflow(false)}
             />
-            <div className="absolute right-0 top-full mt-1 bg-card border border-primary rounded-lg shadow-lg z-20 min-w-[140px] overflow-hidden">
+            <div className="absolute right-0 top-full mt-1 bg-[hsl(var(--color-card))] border border-primary rounded-lg shadow-lg z-20 min-w-[140px] overflow-hidden">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowOverflow(false);
                   onClick();
                 }}
-                className="w-full py-2.5 px-3.5 bg-transparent text-[12.5px] text-foreground/80 text-left flex items-center gap-1.5 hover:bg-muted transition-colors"
+                className="w-full py-2.5 px-3.5 bg-[hsl(42_26%_92%)] text-[12.5px] text-foreground text-left flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)] transition-colors"
               >
                 <Eye size={13} /> View Details
               </button>
@@ -230,7 +230,7 @@ export function InvoiceRow({
                     setShowOverflow(false);
                     onCancel();
                   }}
-                  className="w-full py-2.5 px-3.5 bg-transparent text-red-600 text-left flex items-center gap-1.5 hover:bg-muted transition-colors"
+                  className="w-full py-2.5 px-3.5 bg-[hsl(42_26%_92%)] text-red-600 text-left flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)] transition-colors"
                 >
                   <XCircle size={13} /> Cancel
                 </button>
