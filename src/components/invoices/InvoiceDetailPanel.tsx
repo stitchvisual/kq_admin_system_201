@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Send, CheckCircle, Download, XCircle, Loader2 } from 'lucide-react';
+import { Send, CheckCircle, Download, XCircle, Loader2, Mail } from 'lucide-react';
 import {
   SheetHandle,
   PanelHeader,
@@ -23,8 +23,10 @@ interface InvoiceDetailPanelProps {
   onMarkPaid?: () => void;
   onCancel?: () => void;
   onDownload: () => void;
+  onSendEmail?: () => void;
   actionLoading: boolean;
   pdfLoading: boolean;
+  emailLoading?: boolean;
 }
 
 function formatDate(date: Date | string | null): string {
@@ -207,16 +209,20 @@ function ActionButtons({
   onMarkPaid,
   onCancel,
   onDownload,
+  onSendEmail,
   actionLoading,
   pdfLoading,
+  emailLoading,
 }: {
   invoice: InvoiceWithClient;
   onIssue?: () => void;
   onMarkPaid?: () => void;
   onCancel?: () => void;
   onDownload: () => void;
+  onSendEmail?: () => void;
   actionLoading: boolean;
   pdfLoading: boolean;
+  emailLoading?: boolean;
 }) {
   const { status } = invoice;
 
@@ -254,6 +260,12 @@ function ActionButtons({
               {pdfLoading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
               Download
             </SecondaryBtn>
+            {onSendEmail && (
+              <SecondaryBtn type="button" onClick={onSendEmail} disabled={emailLoading}>
+                {emailLoading ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
+                Send Email
+              </SecondaryBtn>
+            )}
             {onCancel && (
               <DangerBtn type="button" onClick={onCancel}>
                 <XCircle size={13} />
@@ -288,8 +300,10 @@ export function InvoiceDetailPanel({
   onMarkPaid,
   onCancel,
   onDownload,
+  onSendEmail,
   actionLoading,
   pdfLoading,
+  emailLoading,
 }: InvoiceDetailPanelProps) {
   const overdue = invoice.status === 'issued' && invoice.due_date && new Date(invoice.due_date) < new Date();
   const daysOverdue = overdue && invoice.due_date
@@ -329,8 +343,10 @@ export function InvoiceDetailPanel({
         onMarkPaid={onMarkPaid}
         onCancel={onCancel}
         onDownload={onDownload}
+        onSendEmail={onSendEmail}
         actionLoading={actionLoading}
         pdfLoading={pdfLoading}
+        emailLoading={emailLoading}
       />
     </div>
   );

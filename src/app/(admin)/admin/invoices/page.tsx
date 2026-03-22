@@ -30,6 +30,7 @@ import {
   ClientSessionGroup as ClientSessionGroupComponent,
   GenerateDateRangeSelector,
 } from '@/components/invoices';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 // ============================================================================
 // TYPES
@@ -131,6 +132,7 @@ export default function UnifiedInvoicesPage() {
   const [panelClosing, setPanelClosing] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
+  const [emailLoading, setEmailLoading] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(true);
@@ -209,13 +211,44 @@ export default function UnifiedInvoicesPage() {
 
   useEffect(() => {
     fetchSummaryStats();
-    fetchUninvoicedSessions();
   }, []);
 
-  useEffect(() => {
-    if (startDate && endDate) {
-      fetchUninvoicedSessions();
+  const fetchUninvoicedSessions = async (signal?: AbortSignal) => {
+    if (!startDate || !endDate) return;
+
+    setSessionsLoading(true);
+    setSelectedSessionIds(new Set());
+    setTravelKmMap(new Map());
+    try {
+      const res = await fetch(
+        `/api/invoices/uninvoiced-sessions?startDate=${startDate}&endDate=${endDate}`,
+        { signal, credentials: 'same-origin' }
+      );
+      const data = await res.json();
+      if (data.success) {
+        setSessionGroups(data.data);
+        const validSessionIds = data.data.flatMap((group: ClientSessionGroupType) =>
+          group.sessions.filter((s: UninvoicedSession) => s.rate > 0).map((s: UninvoicedSession) => s.id)
+        );
+        setSelectedSessionIds(new Set(validSessionIds));
+      } else {
+        toast.error(data.error?.message ?? 'Failed to load sessions');
+      }
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') return;
+      console.error('Failed to fetch uninvoiced sessions:', error);
+      toast.error('Failed to load sessions');
+    } finally {
+      setSessionsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (!startDate || !endDate) return;
+
+    const controller = new AbortController();
+    fetchUninvoicedSessions(controller.signal);
+    return () => controller.abort();
   }, [startDate, endDate]);
 
   const fetchSummaryStats = async () => {
@@ -257,32 +290,6 @@ export default function UnifiedInvoicesPage() {
     }
   };
 
-  const fetchUninvoicedSessions = async () => {
-    if (!startDate || !endDate) return;
-    
-    setSessionsLoading(true);
-    setSelectedSessionIds(new Set());
-    setTravelKmMap(new Map());
-    try {
-      const res = await fetch(
-        `/api/invoices/uninvoiced-sessions?startDate=${startDate}&endDate=${endDate}`
-      );
-      const data = await res.json();
-      if (data.success) {
-        setSessionGroups(data.data);
-        const validSessionIds = data.data.flatMap((group: ClientSessionGroupType) =>
-          group.sessions.filter((s: UninvoicedSession) => s.rate > 0).map((s: UninvoicedSession) => s.id)
-        );
-        setSelectedSessionIds(new Set(validSessionIds));
-      }
-    } catch (error) {
-      console.error('Failed to fetch uninvoiced sessions:', error);
-      toast.error('Failed to load sessions');
-    } finally {
-      setSessionsLoading(false);
-    }
-  };
-
   // --- Panel operations ---
   const openPanel = (mode: PanelMode) => {
     setPanelClosing(false);
@@ -310,6 +317,24 @@ export default function UnifiedInvoicesPage() {
       }
     } catch (error) {
       console.error('Failed to fetch invoice details:', error);
+    }
+  };
+
+  const handleSendEmail = async (invoiceId: string) => {
+    setEmailLoading(invoiceId);
+    try {
+      const res = await fetch(`/api/invoices/${invoiceId}/send-email`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        toast.success('Invoice emailed successfully');
+      } else {
+        const msg = data.error?.message ?? 'Failed to send email';
+        toast.error(res.status === 503 ? 'Email sending is not configured.' : msg);
+      }
+    } catch (err) {
+      toast.error('Failed to send email');
+    } finally {
+      setEmailLoading(null);
     }
   };
 
@@ -814,8 +839,10 @@ export default function UnifiedInvoicesPage() {
                 onIssue={() => handleIssue(selectedInvoice.id)}
                 onMarkPaid={() => handleMarkPaid(selectedInvoice.id)}
                 onDownload={() => handleDownloadPdf(selectedInvoice.invoice_number, selectedInvoice.id)}
+                onSendEmail={() => handleSendEmail(selectedInvoice.id)}
                 actionLoading={actionLoading}
                 pdfLoading={pdfLoading === selectedInvoice.id}
+                emailLoading={emailLoading === selectedInvoice.id}
               />
             )}
           </div>
@@ -912,12 +939,14 @@ function GenerateTabContent({
         <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Due Date</label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={e => onDueDateChange(e.target.value)}
-                className="w-full h-9 px-3 rounded-lg border border-[hsl(34_22%_74%)] bg-card text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-              />
+            <DateRangePicker
+              startDate={dueDate}
+              endDate={dueDate}
+              onStartDateChange={onDueDateChange}
+              onEndDateChange={onDueDateChange}
+              mode="single"
+              presets={true}
+            />
           </div>
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Notes (optional)</label>
