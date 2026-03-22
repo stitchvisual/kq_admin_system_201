@@ -2,8 +2,10 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { FilterChip } from '@/components/ui/filter-chip';
 import {
   getOptionRange,
+  matchesOption,
   QUICK_OPTION_LABELS,
   type QuickOption,
 } from '@/lib/date-range-utils';
@@ -33,30 +35,21 @@ export function DateRangeQuickSelect({
     onEndDateChange(range.end);
   };
 
-  const isOptionActive = (option: QuickOption): boolean => {
-    const range = getOptionRange(option);
-    return range.start === startDate && range.end === endDate;
-  };
+  const isOptionActive = (option: QuickOption) =>
+    matchesOption(startDate, endDate, option);
 
   return (
     <div className={cn('flex flex-wrap gap-1.5', className)}>
-      {options.map((option) => {
-        const active = isOptionActive(option);
-        return (
-          <button
-            key={option}
-            onClick={() => handleOptionClick(option)}
-            className={cn(
-              'h-7 px-3 rounded-md text-xs font-medium transition-all',
-              active
-                ? 'bg-primary text-white shadow-sm'
-                : 'border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)]'
-            )}
-          >
-            {QUICK_OPTION_LABELS[option]}
-          </button>
-        );
-      })}
+      {options.map((option) => (
+        <FilterChip
+          key={option}
+          active={isOptionActive(option)}
+          size="sm"
+          onClick={() => handleOptionClick(option)}
+        >
+          {QUICK_OPTION_LABELS[option]}
+        </FilterChip>
+      ))}
     </div>
   );
 }

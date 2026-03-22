@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { FilterChip } from '@/components/ui/filter-chip';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import {
   getOptionRange,
@@ -53,24 +54,16 @@ export function GenerateDateRangeSelector({
     <div ref={containerRef} className={cn('space-y-3', className)}>
       {/* Preset chips */}
       <div className="flex flex-wrap gap-2">
-        {QUICK_OPTIONS.map((option) => {
-          const isActive = activeOption === option;
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => handlePreset(option)}
-              className={cn(
-                'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
-                isActive
-                  ? 'bg-primary text-white shadow-sm'
-                  : 'border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)]'
-              )}
-            >
-              {QUICK_OPTION_LABELS_SENTENCE[option]}
-            </button>
-          );
-        })}
+        {QUICK_OPTIONS.map((option) => (
+          <FilterChip
+            key={option}
+            active={activeOption === option}
+            size="md"
+            onClick={() => handlePreset(option)}
+          >
+            {QUICK_OPTION_LABELS_SENTENCE[option]}
+          </FilterChip>
+        ))}
       </div>
 
       {/* Custom range row */}
