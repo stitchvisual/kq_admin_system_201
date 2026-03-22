@@ -1,17 +1,25 @@
 import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import postgres, { type Sql } from "postgres";
 import * as schema from "./schema";
 
-// Prefer non-pooling URL for serverless postgres driver, fall back to pooled URL
-const connectionString = process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL || process.env.DATABASE_URL;
+// Use pooled connection URL for serverless environments to avoid connection limits
+const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 
 if (!connectionString) {
   throw new Error("Database connection string not found. Please set POSTGRES_URL or DATABASE_URL environment variable.");
 }
 
-const client = postgres(connectionString, {
+// Singleton pattern to prevent creating multiple connections in serverless
+const globalForDb = globalThis as unknown as {
+  client: Sql | undefined;
+};
+
+const client = globalForDb.client ?? postgres(connectionString, {
   ssl: "require",
-  prepare: false, // Disable prefetch for serverless environments
+  prepare: false, // Disable prepared statements for connection pooling (e.g., PgBouncer)
+  max: 1, // Limit connections in serverless environment
+  idle_timeout: 20, // Close idle connections after 20 seconds
+  connect_timeout: 10, // Connection timeout
   transform: {
     undefined: null,
     value: (value: unknown) => {
@@ -23,5 +31,9 @@ const client = postgres(connectionString, {
     },
   },
 });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForDb.client = client;
+}
 
 export const db = drizzle(client, { schema });
