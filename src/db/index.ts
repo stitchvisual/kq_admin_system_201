@@ -11,6 +11,18 @@ if (!connectionString) {
 const client = postgres(connectionString, {
   ssl: "require",
   prepare: false, // Disable prefetch for serverless environments
+  transform: {
+    undefined: null,
+  },
+  types: {
+    // Ensure Date objects are properly serialized to ISO strings
+    date: {
+      to: 1184, // timestamptz OID
+      from: [1082, 1083, 1114, 1184], // date, time, timestamp, timestamptz
+      serialize: (x: Date) => x.toISOString(),
+      parse: (x: string) => new Date(x),
+    },
+  },
 });
 
 export const db = drizzle(client, { schema });
