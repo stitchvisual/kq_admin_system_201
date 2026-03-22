@@ -1,13 +1,20 @@
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import * as schema from "./schema";
 
-const connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+let connectionString = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 
 if (!connectionString) {
   throw new Error("Database connection string not found. Please set POSTGRES_URL or DATABASE_URL environment variable.");
 }
 
-const sql = neon(connectionString);
+// Ensure sslmode is set in the connection string for Supabase
+if (!connectionString.includes("sslmode=")) {
+  connectionString += connectionString.includes("?") ? "&sslmode=require" : "?sslmode=require";
+}
 
-export const db = drizzle(sql, { schema });
+const pool = new Pool({ 
+  connectionString,
+});
+
+export const db = drizzle(pool, { schema });
