@@ -1,49 +1,279 @@
-import { Pencil, Trash2, Calendar, FileText, AlertCircle } from 'lucide-react';
+'use client';
+
+import { Pencil, Trash2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Client } from '@/db/schema/clients';
-import { colors, invoiceStatus, radii, spacing, typography } from '@/styles/botanical';
 import {
-  CLIENT_PANEL,
-  ClientPanelHeader,
-  clientPanelBtnLabel,
-  clientPanelContentScroll,
-  clientPanelListRowShell,
-  clientPanelPrimaryFullWidth,
-  clientPanelSecondaryFullWidth,
-  clientPanelSectionLabel,
-} from './clientPanelShared';
+  SheetHandle,
+  PanelHeader,
+  PanelFooter,
+  SectionLabel,
+  PrimaryBtn,
+  DangerBtn,
+} from '@/components/panels';
+import InvoiceStatusBadge, { type InvoiceStatus } from '@/components/invoices/InvoiceStatusBadge';
+
+/* ─── Types ─────────────────────────────────────────────────────────────── */
+
+type RateCode = { code: string; name: string; price: string } | null;
+type RateCodes = {
+  weekday: RateCode;
+  saturday: RateCode;
+  sunday: RateCode;
+};
+
+type RecentAppointment = {
+  id: string;
+  starts_at: Date | string;
+  ends_at: Date | string;
+  status: string;
+  invoiced: boolean;
+  is_group: boolean;
+};
+
+/** Invoice summary from client detail API (clients.repository.getClientDetail) */
+type RecentInvoice = {
+  id: string;
+  invoice_number: string;
+  /** Total in dollars (from DB numeric column; Drizzle returns string) */
+  total: string | number;
+  status: string;
+  invoice_date: Date | null;
+};
 
 interface ClientDetailPanelProps {
   client: Client;
-  rateCodes: {
-    weekday: { code: string; name: string; price: string } | null;
-    saturday: { code: string; name: string; price: string } | null;
-    sunday: { code: string; name: string; price: string } | null;
-  };
-  recentAppointments: Array<{
-    id: string;
-    starts_at: Date;
-    ends_at: Date;
-    status: string;
-    invoiced: boolean;
-    is_group: boolean;
-  }>;
-  invoices: Array<{
-    id: string;
-    invoice_number: string;
-    total: number;
-    status: string;
-    invoice_date: Date | null;
-  }>;
+  rateCodes: RateCodes;
+  recentAppointments: RecentAppointment[];
+  invoices: RecentInvoice[];
   outstandingBalance: number;
-  stats: {
-    total_sessions: number;
-    total_invoiced: number;
-    total_paid: number;
-  };
   onClose: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
+
+function formatCurrency(amount: string | number): string {
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+  }).format(num);
+}
+
+/* ─── ClientHeroCard ─────────────────────────────────────────────────────── */
+
+function ClientHeroCard({ client }: { client: Client }) {
+  const initials = client.name
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 rounded-xl p-4 border',
+        'bg-[rgba(122,156,126,0.10)] border-[rgba(122,156,126,0.25)]',
+        'animate-in fade-in-0 zoom-in-[0.98] duration-200'
+      )}
+    >
+      <div
+        className={cn(
+          'w-10 h-10 rounded-full bg-primary flex-shrink-0',
+          'flex items-center justify-center',
+          'text-[13px] font-medium text-primary-foreground'
+        )}
+      >
+        {initials}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-heading text-[15px] font-semibold text-foreground truncate">
+          {client.name}
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          {client.ndis_number ? `NDIS ${client.ndis_number}` : 'No NDIS number set'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── BalanceChip ────────────────────────────────────────────────────────── */
+
+function BalanceChip({ outstandingBalance }: { outstandingBalance: number }) {
+  const allClear = outstandingBalance === 0;
+
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between rounded-lg px-3 py-2.5 border',
+        allClear
+          ? 'bg-[rgba(90,138,96,0.08)] border-[rgba(90,138,96,0.2)]'
+          : 'bg-[rgba(182,148,112,0.10)] border-[rgba(182,148,112,0.25)]'
+      )}
+    >
+      <span className="text-[11px] text-muted-foreground">Outstanding balance</span>
+      <span
+        className={cn(
+          'font-heading text-[14px] font-semibold',
+          allClear ? 'text-[#3a5a3e]' : 'text-[#8a5a2a]'
+        )}
+      >
+        {allClear ? 'All paid up' : formatCurrency(outstandingBalance / 100)}
+      </span>
+    </div>
+  );
+}
+
+/* ─── RateCodesSection ───────────────────────────────────────────────────── */
+
+function RateCodesSection({ rateCodes }: { rateCodes: RateCodes }) {
+  const days = [
+    { label: 'Weekday', rate: rateCodes.weekday },
+    { label: 'Saturday', rate: rateCodes.saturday },
+    { label: 'Sunday', rate: rateCodes.sunday },
+  ];
+
+  return (
+    <div>
+      <SectionLabel>Rate codes</SectionLabel>
+      <div className="divide-y divide-primary/50">
+        {days.map(({ label, rate }) => (
+          <div key={label} className="flex items-center justify-between py-[6px]">
+            <span className="text-[12px] text-muted-foreground">{label}</span>
+            {rate ? (
+              <div className="flex items-center gap-2 min-w-0">
+                <span
+                  title={rate.code}
+                  className="font-mono text-[10px] text-foreground/60 bg-muted px-1.5 py-0.5 rounded truncate min-w-0 flex-1"
+                >
+                  {rate.code.length > 12 ? rate.code.slice(0, 12) + '…' : rate.code}
+                </span>
+                <span className="text-[12px] font-medium text-foreground flex-shrink-0">${rate.price}/hr</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="w-[6px] h-[6px] rounded-full bg-[hsl(36_65%_56%)] flex-shrink-0"
+                  aria-hidden
+                />
+                <span className="text-[11px] font-medium text-[hsl(25_60%_40%)]">Not set</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── SessionStatusBadge ─────────────────────────────────────────────────── */
+
+function SessionStatusBadge({ status }: { status: string }) {
+  const config: Record<string, { bg: string; text: string; label: string }> = {
+    completed: { bg: 'rgba(90,138,96,0.12)', text: '#3a5a3e', label: 'Completed' },
+    confirmed: { bg: 'rgba(120,149,170,0.12)', text: '#2d4a5c', label: 'Confirmed' },
+    pending: { bg: 'rgba(182,148,112,0.14)', text: '#6b4d2f', label: 'Pending' },
+    cancelled: { bg: 'rgba(168,140,158,0.14)', text: '#6b3a5c', label: 'Cancelled' },
+  };
+  const c = config[status] ?? { bg: 'rgba(120,149,170,0.12)', text: '#2d4a5c', label: status };
+
+  return (
+    <span
+      className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
+      style={{ background: c.bg, color: c.text }}
+    >
+      {c.label}
+    </span>
+  );
+}
+
+/* ─── RecentSessionsSection ──────────────────────────────────────────────── */
+
+function RecentSessionsSection({ appointments }: { appointments: RecentAppointment[] }) {
+  if (appointments.length === 0) return null;
+
+  return (
+    <div>
+      <SectionLabel>Recent sessions</SectionLabel>
+      <div className="divide-y divide-primary/50">
+        {appointments.slice(0, 5).map((appt, i) => {
+          const date = new Date(appt.starts_at);
+          const dateStr = date.toLocaleDateString('en-AU', {
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+          });
+
+          return (
+            <div
+              key={appt.id}
+              className={cn(
+                'flex items-center justify-between py-[6px]',
+                'animate-in fade-in-0 slide-in-from-right-2 duration-200'
+              )}
+              style={{ animationDelay: `${i * 40}ms` }}
+            >
+              <span className="text-[12px] font-medium text-foreground min-w-0">{dateStr}</span>
+              <div className="flex items-center gap-1.5">
+                <SessionStatusBadge status={appt.status} />
+                {appt.status === 'completed' &&
+                  (appt.invoiced ? (
+                    <span
+                      className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[rgba(172,163,118,0.18)] text-[#7a6a30]"
+                    >
+                      Invoiced
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-[hsl(25_60%_40%)] font-medium">
+                      Not invoiced
+                    </span>
+                  ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── InvoicesSection ────────────────────────────────────────────────────── */
+
+function InvoicesSection({ invoices }: { invoices: RecentInvoice[] }) {
+  if (invoices.length === 0) return null;
+
+  return (
+    <div>
+      <SectionLabel>Invoices</SectionLabel>
+      <div className="divide-y divide-primary/50">
+        {invoices.slice(0, 5).map((inv, i) => (
+          <div
+            key={inv.id}
+            className={cn(
+              'flex items-center justify-between py-[6px]',
+              'animate-in fade-in-0 slide-in-from-right-2 duration-200'
+            )}
+            style={{ animationDelay: `${i * 40}ms` }}
+          >
+            <span className="font-mono text-[11px] font-medium text-foreground">
+              {inv.invoice_number}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] font-medium text-foreground">
+                {formatCurrency(parseFloat(String(inv.total)))}
+              </span>
+              <InvoiceStatusBadge status={inv.status as InvoiceStatus} size="sm" showIcon={false} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Panel ──────────────────────────────────────────────────────────────── */
 
 export function ClientDetailPanel({
   client,
@@ -51,450 +281,46 @@ export function ClientDetailPanel({
   recentAppointments,
   invoices,
   outstandingBalance,
-  stats,
   onClose,
   onEdit,
   onDelete,
 }: ClientDetailPanelProps) {
-  const initials = client.name
-    .split(' ')
-    .map(n => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
-  const green = colors.primaryBase;
-  const amber = '#b69470';
-
   return (
-    <div className="flex flex-col h-full border-t-[3px] border-t-primary">
-      <ClientPanelHeader
-        title="Client Details"
-        breadcrumb={`Clients / ${client.name}`}
+    <div className="flex flex-col h-full min-h-0 bg-card overflow-hidden">
+      <SheetHandle className="md:hidden" />
+
+      <div className="h-[3px] w-full bg-primary flex-shrink-0" aria-hidden />
+
+      <PanelHeader
+        showAccentBar={false}
+        breadcrumb="Clients"
+        title="Client details"
         onClose={onClose}
       />
-      <div style={clientPanelContentScroll}>
-        {/* Client Info Card */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem',
-            padding: spacing.card,
-            borderRadius: radii.card,
-            background: colors.primaryBg,
-            border: `1px solid ${colors.primary}`,
-            marginBottom: CLIENT_PANEL.sectionMarginBottom,
-          }}
-        >
-          <div
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              background: green,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ color: '#fff', fontSize: 'var(--font-size-meta)', fontWeight: 700 }}>
-              {initials}
-            </span>
-          </div>
-          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
-            <p
-              style={{
-                margin: 0,
-                fontFamily: typography.heading,
-                fontSize: '0.95rem',
-                fontWeight: typography.weights.heading,
-                color: colors.heading,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {client.name}
-            </p>
-            <p
-              style={{
-                margin: '2px 0 0',
-                fontSize: typography.sizes.small,
-                color: colors.muted,
-              }}
-            >
-              {client.ndis_number ? `NDIS: ${client.ndis_number}` : ''}
-            </p>
-          </div>
+
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
+        <ClientHeroCard client={client} />
+        <div className="animate-in fade-in-0 duration-300 delay-100 space-y-4">
+          <BalanceChip outstandingBalance={outstandingBalance} />
+          <RateCodesSection rateCodes={rateCodes} />
+          <RecentSessionsSection appointments={recentAppointments} />
+          <InvoicesSection invoices={invoices} />
         </div>
-
-        {/* Rate Code Status */}
-        <div style={{ marginBottom: CLIENT_PANEL.sectionMarginBottom }}>
-          <p style={clientPanelSectionLabel}>
-            Rate Codes
-          </p>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: CLIENT_PANEL.listGap,
-            }}
-          >
-            <RateCodeRow label="Weekday" rate={rateCodes.weekday} />
-            <RateCodeRow label="Saturday" rate={rateCodes.saturday} />
-            <RateCodeRow label="Sunday" rate={rateCodes.sunday} />
-          </div>
-        </div>
-
-        {/* Outstanding Balance */}
-        <div style={{ marginBottom: CLIENT_PANEL.sectionMarginBottom }}>
-          <p style={clientPanelSectionLabel}>
-            Balance
-          </p>
-          <div
-            style={{
-              padding: '0.65rem 0.85rem',
-              borderRadius: radii.button,
-              background: outstandingBalance === 0
-                ? 'rgba(90,138,96,0.08)'
-                : 'rgba(182,148,112,0.10)',
-              border: `1px solid ${outstandingBalance === 0 ? 'rgba(90,138,96,0.2)' : 'rgba(182,148,112,0.25)'}`,
-            }}
-          >
-            <p
-              style={{
-                margin: 0,
-                fontSize: '0.9rem',
-                fontWeight: 600,
-                color: outstandingBalance === 0 ? '#5a8a60' : amber,
-              }}
-            >
-              {outstandingBalance === 0 ? 'All paid up' : `Outstanding: $${(outstandingBalance / 100).toFixed(2)}`}
-            </p>
-          </div>
-        </div>
-
-        {/* Recent Sessions */}
-        {recentAppointments.length > 0 && (
-          <div style={{ marginBottom: CLIENT_PANEL.sectionMarginBottom }}>
-            <p style={clientPanelSectionLabel}>
-              Recent Sessions ({recentAppointments.length})
-            </p>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: CLIENT_PANEL.listGap,
-              }}
-            >
-              {recentAppointments.slice(0, 5).map((appt, idx) => (
-                <SessionRow key={idx} appointment={appt} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Invoices */}
-        {invoices.length > 0 && (
-          <div style={{ marginBottom: CLIENT_PANEL.sectionMarginBottom }}>
-            <p style={clientPanelSectionLabel}>
-              Invoices ({invoices.length})
-            </p>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: CLIENT_PANEL.listGap,
-              }}
-            >
-              {invoices.map((invoice, idx) => (
-                <InvoiceRow key={idx} invoice={invoice} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Stats */}
-        <div style={{ marginBottom: CLIENT_PANEL.sectionMarginBottom }}>
-          <p style={clientPanelSectionLabel}>
-            Statistics
-          </p>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: CLIENT_PANEL.listGap,
-            }}
-          >
-            <StatRow label="Total Sessions" value={stats.total_sessions} />
-            <StatRow
-              label="Total Invoiced"
-              value={`$${(stats.total_invoiced / 100).toFixed(2)}`}
-            />
-            <StatRow label="Total Paid" value={`$${(stats.total_paid / 100).toFixed(2)}`} />
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: CLIENT_PANEL.verticalActionGap,
-          }}
-        >
-          <button
-            type="button"
-            onClick={onEdit}
-            style={clientPanelPrimaryFullWidth()}
-          >
-            <Pencil size={13} style={{ flexShrink: 0 }} />
-            <span style={clientPanelBtnLabel}>Edit Client</span>
-          </button>
-          <button
-            type="button"
-            onClick={onDelete}
-            style={clientPanelSecondaryFullWidth({
-              color: invoiceStatus.overdue.text,
-              border: `1px solid ${invoiceStatus.overdue.border}`,
-            })}
-          >
-            <Trash2 size={13} style={{ flexShrink: 0 }} />
-            <span style={clientPanelBtnLabel}>Delete Client</span>
-          </button>
-        </div>
+        <div className="h-2" />
       </div>
-    </div>
-  );
-}
 
-function RateCodeRow({
-  label,
-  rate,
-}: {
-  label: string;
-  rate: { code: string; name: string; price: string } | null;
-}) {
-  const green = colors.primaryBase;
-  const amber = '#b69470';
-
-  return (
-    <div
-      style={{
-        ...clientPanelListRowShell,
-      }}
-    >
-      <span style={{ fontSize: '0.72rem', color: colors.secondary, fontWeight: 500 }}>
-        {label}
-      </span>
-      {rate ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-          <span
-            style={{
-              fontSize: 'var(--font-size-badge)',
-              color: colors.heading,
-              fontWeight: 500,
-            }}
-          >
-            ${rate.price}
-          </span>
-          <div
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: green,
-            }}
-          />
+      <PanelFooter>
+        <div className="flex gap-2">
+          <PrimaryBtn type="button" onClick={onEdit} className="flex-1">
+            <Pencil size={13} />
+            Edit client
+          </PrimaryBtn>
+          <DangerBtn type="button" onClick={onDelete} className="flex-1 h-11 md:h-10">
+            <Trash2 size={13} />
+            Delete
+          </DangerBtn>
         </div>
-      ) : (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.4rem',
-          }}
-        >
-          <AlertCircle size={12} style={{ color: amber }} />
-          <span
-            style={{
-              fontSize: 'var(--font-size-badge)',
-              color: amber,
-              fontWeight: 600,
-            }}
-          >
-            Not set
-          </span>
-          <div
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: '50%',
-              background: amber,
-            }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SessionRow({
-  appointment,
-}: {
-  appointment: {
-    id: string;
-    starts_at: Date;
-    ends_at: Date;
-    status: string;
-    invoiced: boolean;
-    is_group: boolean;
-  };
-}) {
-  const date = new Date(appointment.starts_at);
-  const startDate = new Date(appointment.starts_at);
-  const endDate = new Date(appointment.ends_at);
-  const durationMins = Math.round((endDate.getTime() - startDate.getTime()) / 60000);
-  const hours = Math.floor(durationMins / 60);
-  const mins = durationMins % 60;
-  const duration = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-
-  const statusColors: Record<string, string> = {
-    pending: 'rgba(182,148,112,0.15)',
-    confirmed: 'rgba(120,149,170,0.15)',
-    completed: 'rgba(131,153,119,0.15)',
-    cancelled: 'rgba(168,140,158,0.15)',
-  };
-
-  const statusTextColors: Record<string, string> = {
-    pending: '#b69470',
-    confirmed: '#7895aa',
-    completed: '#839977',
-    cancelled: '#a88c9e',
-  };
-
-  return (
-    <div
-      style={{
-        ...clientPanelListRowShell,
-        fontSize: '0.73rem',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <Calendar size={12} style={{ color: colors.muted }} />
-        <span style={{ color: colors.heading, fontWeight: 500 }}>
-          {date.toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}
-        </span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ color: colors.secondary }}>{duration}</span>
-        <div
-          style={{
-            padding: '1px 6px',
-            borderRadius: 99,
-            background: statusColors[appointment.status] || 'rgba(120,149,170,0.15)',
-            color: statusTextColors[appointment.status] || '#7895aa',
-            fontSize: '0.62rem',
-            fontWeight: 600,
-            textTransform: 'capitalize',
-          }}
-        >
-          {appointment.status === 'completed' ? '✓' : '●'}
-        </div>
-        {appointment.invoiced && (
-          <div
-            style={{
-              padding: '1px 6px',
-              borderRadius: 99,
-              background: 'rgba(172,163,118,0.2)',
-              color: '#aca376',
-              fontSize: '0.62rem',
-              fontWeight: 600,
-            }}
-          >
-            Invoiced
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function InvoiceRow({
-  invoice,
-}: {
-  invoice: {
-    id: string;
-    invoice_number: string;
-    total: number;
-    status: string;
-    invoice_date: Date | null;
-  };
-}) {
-  const statusColors: Record<string, string> = {
-    draft: 'rgba(182,148,112,0.15)',
-    issued: 'rgba(182,148,112,0.15)',
-    paid: 'rgba(131,153,119,0.15)',
-    cancelled: 'rgba(168,140,158,0.15)',
-  };
-
-  const statusTextColors: Record<string, string> = {
-    draft: '#b69470',
-    issued: '#b69470',
-    paid: '#839977',
-    cancelled: '#a88c9e',
-  };
-
-  return (
-    <div
-      style={{
-        ...clientPanelListRowShell,
-        fontSize: '0.73rem',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <FileText size={12} style={{ color: colors.muted }} />
-        <span style={{ color: colors.heading, fontWeight: 500 }}>
-          {invoice.invoice_number}
-        </span>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ color: colors.heading, fontWeight: 600 }}>
-          ${(invoice.total / 100).toFixed(2)}
-        </span>
-        <div
-          style={{
-            padding: '1px 6px',
-            borderRadius: 99,
-            background: statusColors[invoice.status] || 'rgba(120,149,170,0.15)',
-            color: statusTextColors[invoice.status] || '#7895aa',
-            fontSize: '0.62rem',
-            fontWeight: 600,
-            textTransform: 'capitalize',
-          }}
-        >
-          {invoice.status}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatRow({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div
-      style={{
-        ...clientPanelListRowShell,
-      }}
-    >
-      <span style={{ fontSize: '0.72rem', color: colors.secondary, fontWeight: 500 }}>
-        {label}
-      </span>
-      <span style={{ fontSize: 'var(--font-size-meta)', color: colors.heading, fontWeight: 600 }}>
-        {value}
-      </span>
+      </PanelFooter>
     </div>
   );
 }

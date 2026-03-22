@@ -1,17 +1,13 @@
 import type { ReactNode } from 'react';
 import { AlertCircle, Calendar, FileText } from 'lucide-react';
 import type { Client } from '@/db/schema/clients';
-import { colors, radii, spacing } from '@/styles/botanical';
 import {
-  CLIENT_PANEL,
-  ClientPanelHeader,
-  clientPanelBtnLabel,
-  clientPanelContentScroll,
-  clientPanelListRowShell,
-  clientPanelPrimaryFlexible,
-  clientPanelSecondaryCompact,
-  clientPanelSectionLabel,
-} from './clientPanelShared';
+  PanelHeader,
+  PanelContent,
+  SectionLabel,
+  PrimaryBtn,
+  SecondaryBtn,
+} from '@/components/panels';
 
 interface ClientDeletePanelProps {
   client: Client;
@@ -41,62 +37,33 @@ export function ClientDeletePanel({
 
   return (
     <>
-      <ClientPanelHeader title="Delete Client" onClose={onClose} titleColor="#a04040" />
-      <div style={clientPanelContentScroll}>
-        <p
-          style={{
-            margin: '0 0 1rem',
-            fontSize: '0.82rem',
-            color: colors.secondary,
-            lineHeight: 1.55,
-          }}
-        >
+      <PanelHeader
+        breadcrumb="Clients"
+        title="Delete Client"
+        accentClass="bg-[var(--panel-accent-delete)]"
+        titleColorClass="text-[var(--status-overdue-text)]"
+        onClose={onClose}
+      />
+      <PanelContent>
+        <p className="m-0 mb-4 text-[0.82rem] text-muted-foreground leading-relaxed">
           Are you sure you want to delete{' '}
-          <strong style={{ fontWeight: 600, color: colors.heading }}>
-            {client.name}
-          </strong>
+          <strong className="font-semibold text-foreground">{client.name}</strong>
           ? This action cannot be undone.
         </p>
 
         {/* Warning banner */}
-        <div
-          style={{
-            padding: spacing.card,
-            borderRadius: radii.card,
-            background: 'rgba(160,64,64,0.07)',
-            border: '1px solid rgba(160,64,64,0.2)',
-            marginBottom: CLIENT_PANEL.sectionMarginBottom,
-            display: 'flex',
-            gap: CLIENT_PANEL.listGap,
-            alignItems: 'flex-start',
-          }}
-        >
-          <AlertCircle size={16} color="#a04040" style={{ flexShrink: 0, marginTop: 2 }} />
-          <p
-            style={{
-              margin: 0,
-              fontSize: 'var(--font-size-meta)',
-              color: '#7a3030',
-              lineHeight: 1.45,
-            }}
-          >
+        <div className="p-[0.85rem] rounded-[10px] bg-[var(--status-overdue-bg)] border border-[var(--status-overdue-border)] mb-6 flex gap-2 items-start">
+          <AlertCircle size={16} className="text-[var(--status-overdue-dot)] flex-shrink-0 mt-0.5" />
+          <p className="m-0 text-[var(--font-size-meta)] text-[var(--status-overdue-text)] leading-snug">
             This client and all related data will be archived. You can restore it later if needed.
           </p>
         </div>
 
         {/* Related data summary */}
         {(hasAppointments || hasInvoices) && (
-          <div style={{ marginBottom: CLIENT_PANEL.sectionMarginBottom }}>
-            <p style={clientPanelSectionLabel}>
-              Related Records to Archive
-            </p>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: CLIENT_PANEL.listGap,
-              }}
-            >
+          <div className="mb-6">
+            <SectionLabel>Related Records to Archive</SectionLabel>
+            <div className="divide-y divide-primary/50">
               {hasAppointments && (
                 <RelatedCountItem
                   icon={<Calendar size={13} />}
@@ -117,38 +84,13 @@ export function ClientDeletePanel({
 
         {/* Outstanding balance warning */}
         {hasUnpaid && (
-          <div
-            style={{
-              padding: spacing.card,
-              borderRadius: radii.card,
-              background: 'rgba(182,148,112,0.10)',
-              border: '1px solid rgba(182,148,112,0.3)',
-              marginBottom: CLIENT_PANEL.sectionMarginBottom,
-              display: 'flex',
-              gap: CLIENT_PANEL.listGap,
-              alignItems: 'flex-start',
-            }}
-          >
-            <AlertCircle size={16} color="#b69470" style={{ flexShrink: 0, marginTop: 2 }} />
-            <div style={{ flex: 1 }}>
-              <p
-                style={{
-                  margin: '0 0 0.3rem',
-                  fontSize: 'var(--font-size-meta)',
-                  fontWeight: 600,
-                  color: '#6b4d2f',
-                }}
-              >
+          <div className="p-[0.85rem] rounded-[10px] bg-[var(--status-pending-bg)] border border-[var(--status-pending-border)] mb-6 flex gap-2 items-start">
+            <AlertCircle size={16} className="text-[var(--status-pending-dot)] flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="m-0 mb-1 text-[var(--font-size-meta)] font-semibold text-[var(--status-pending-text)]">
                 Outstanding Balance Warning
               </p>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 'var(--font-size-meta)',
-                  color: '#7a5a3a',
-                  lineHeight: 1.45,
-                }}
-              >
+              <p className="m-0 text-[var(--font-size-meta)] text-[var(--status-pending-text)]/90 leading-snug">
                 This client has <strong>{relatedCounts.unpaid_invoices}</strong> unpaid invoice(s) totalling{' '}
                 <strong>${(relatedCounts.unpaid_total / 100).toFixed(2)}</strong>. Consider collecting payment
                 before deleting.
@@ -158,34 +100,24 @@ export function ClientDeletePanel({
         )}
 
         {/* Delete confirmation */}
-        <div
-          style={{
-            display: 'flex',
-            gap: CLIENT_PANEL.horizontalActionGap,
-            marginTop: CLIENT_PANEL.horizontalActionMarginTop,
-            minWidth: 0,
-            width: '100%',
-          }}
-        >
-          <button
+        <div className="flex gap-2 mt-6 min-w-0 w-full">
+          <PrimaryBtn
             type="button"
             onClick={onDelete}
             disabled={deleting}
-            style={clientPanelPrimaryFlexible({
-              background: '#a04040',
-              opacity: deleting ? 0.7 : 1,
-              cursor: deleting ? 'not-allowed' : 'pointer',
-            })}
+            loading={deleting}
+            loadingLabel="Deleting..."
+            className="flex-1 !bg-destructive hover:!bg-destructive/90"
           >
-            <span style={clientPanelBtnLabel}>
-              {deleting ? 'Deleting...' : 'Yes, Delete Client'}
+            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+              Yes, Delete Client
             </span>
-          </button>
-          <button type="button" onClick={onBack} style={clientPanelSecondaryCompact()}>
-            <span style={clientPanelBtnLabel}>Go Back</span>
-          </button>
+          </PrimaryBtn>
+          <SecondaryBtn type="button" onClick={onBack}>
+            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">Go Back</span>
+          </SecondaryBtn>
         </div>
-      </div>
+      </PanelContent>
     </>
   );
 }
@@ -200,26 +132,12 @@ function RelatedCountItem({
   count: number;
 }) {
   return (
-    <div
-      style={{
-        ...clientPanelListRowShell,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-        <span style={{ color: colors.muted }}>{icon}</span>
-        <span style={{ fontSize: '0.75rem', color: colors.secondary, fontWeight: 500 }}>
-          {label}
-        </span>
+    <div className="flex items-center justify-between py-[6px]">
+      <div className="flex items-center gap-2">
+        <span className="text-muted-foreground">{icon}</span>
+        <span className="text-[12px] text-muted-foreground font-medium">{label}</span>
       </div>
-      <span
-        style={{
-          fontSize: 'var(--font-size-meta)',
-          color: colors.heading,
-          fontWeight: 600,
-        }}
-      >
-        {count}
-      </span>
+      <span className="text-[12px] font-medium text-foreground">{count}</span>
     </div>
   );
 }

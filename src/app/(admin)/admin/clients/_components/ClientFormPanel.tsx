@@ -1,14 +1,11 @@
 import type { NdisPricing } from '@/db/schema/ndis_pricing';
 import type { Client } from '@/db/schema/clients';
-import { colors, radii, typography, formStyles } from '@/styles/botanical';
 import {
-  CLIENT_PANEL,
-  ClientPanelHeader,
-  clientPanelBtnLabel,
-  clientPanelContentScroll,
-  clientPanelPrimaryFlexible,
-  clientPanelSecondaryCompact,
-} from './clientPanelShared';
+  PanelHeader,
+  PanelContent,
+  PrimaryBtn,
+  SecondaryBtn,
+} from '@/components/panels';
 
 interface ClientFormPanelProps {
   mode: 'new' | 'edit';
@@ -32,9 +29,13 @@ interface ClientFormPanelProps {
   setFormData: (data: any) => void;
 }
 
+const inputClasses =
+  'w-full h-9 px-2.5 py-0 rounded-lg border border-primary bg-card text-[var(--font-size-body)] text-foreground outline-none box-border font-body';
+const selectClasses =
+  'w-full h-9 px-2.5 pr-2 rounded-lg border border-primary bg-card text-[var(--font-size-body)] text-foreground outline-none box-border font-body cursor-pointer';
+
 export function ClientFormPanel({
   mode,
-  client,
   pricingCodes,
   loadingPricingCodes,
   onClose,
@@ -45,14 +46,15 @@ export function ClientFormPanel({
 }: ClientFormPanelProps) {
   return (
     <>
-      <ClientPanelHeader
+      <PanelHeader
+        breadcrumb="Clients"
         title={mode === 'new' ? 'Add Client' : 'Edit Client'}
+        accentClass="bg-[var(--panel-accent-client)]"
         onClose={onClose}
       />
-      <div style={clientPanelContentScroll}>
+      <PanelContent>
         <form onSubmit={onSubmit}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            
+          <div className="flex flex-col gap-4">
             <FormField label="Name *">
               <input
                 type="text"
@@ -60,7 +62,7 @@ export function ClientFormPanel({
                 value={formData.name}
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 required
-                style={inputStyle}
+                className={inputClasses}
                 placeholder="Enter client name"
               />
             </FormField>
@@ -72,7 +74,7 @@ export function ClientFormPanel({
                 value={formData.email}
                 onChange={e => setFormData({ ...formData, email: e.target.value })}
                 required
-                style={inputStyle}
+                className={inputClasses}
                 placeholder="client@example.com"
               />
             </FormField>
@@ -83,7 +85,7 @@ export function ClientFormPanel({
                 id="phone"
                 value={formData.phone}
                 onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                style={inputStyle}
+                className={inputClasses}
                 placeholder="0412 345 678"
               />
             </FormField>
@@ -94,7 +96,7 @@ export function ClientFormPanel({
                 id="ndis_number"
                 value={formData.ndis_number}
                 onChange={e => setFormData({ ...formData, ndis_number: e.target.value })}
-                style={inputStyle}
+                className={inputClasses}
                 placeholder="123 456 789"
               />
             </FormField>
@@ -105,7 +107,7 @@ export function ClientFormPanel({
                 id="address"
                 value={formData.address}
                 onChange={e => setFormData({ ...formData, address: e.target.value })}
-                style={inputStyle}
+                className={inputClasses}
                 placeholder="123 Main Street"
               />
             </FormField>
@@ -116,19 +118,19 @@ export function ClientFormPanel({
                 id="suburb"
                 value={formData.suburb}
                 onChange={e => setFormData({ ...formData, suburb: e.target.value })}
-                style={inputStyle}
+                className={inputClasses}
                 placeholder="Sydney"
               />
             </FormField>
 
-            <div style={{ height: 1, background: colors.primary, margin: '0.5rem 0' }} />
+            <div className="h-px bg-primary my-2" />
 
             <FormField label="Weekday Rate Code">
               <select
                 value={formData.weekday_code}
                 onChange={e => setFormData({ ...formData, weekday_code: e.target.value })}
                 disabled={loadingPricingCodes}
-                style={selectStyle}
+                className={selectClasses}
               >
                 <option value="">Select a pricing code...</option>
                 {pricingCodes.map(code => (
@@ -144,7 +146,7 @@ export function ClientFormPanel({
                 value={formData.saturday_code}
                 onChange={e => setFormData({ ...formData, saturday_code: e.target.value })}
                 disabled={loadingPricingCodes}
-                style={selectStyle}
+                className={selectClasses}
               >
                 <option value="">Select a pricing code...</option>
                 {pricingCodes.map(code => (
@@ -160,7 +162,7 @@ export function ClientFormPanel({
                 value={formData.sunday_code}
                 onChange={e => setFormData({ ...formData, sunday_code: e.target.value })}
                 disabled={loadingPricingCodes}
-                style={selectStyle}
+                className={selectClasses}
               >
                 <option value="">Select a pricing code...</option>
                 {pricingCodes.map(code => (
@@ -171,55 +173,31 @@ export function ClientFormPanel({
               </select>
             </FormField>
 
-            <div
-              style={{
-                padding: '0.6rem 0.85rem',
-                borderRadius: radii.button,
-                background: 'rgba(182,148,112,0.08)',
-                border: '1px solid rgba(182,148,112,0.2)',
-                marginTop: '0.3rem',
-              }}
-            >
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 'var(--font-size-badge)',
-                  color: '#7a5a3a',
-                  lineHeight: 1.45,
-                }}
-              >
-                <strong style={{ fontWeight: 600 }}>Tip:</strong> Set all three rate codes to avoid $0 invoice errors. Weekend rates typically have higher prices.
+            <div className="p-2.5 rounded-lg bg-[var(--status-pending-bg)] border border-[var(--status-pending-border)] mt-1.5">
+              <p className="m-0 text-[var(--font-size-badge)] text-[var(--status-pending-text)] leading-snug">
+                <strong className="font-semibold">Tip:</strong> Set all three rate codes to avoid $0 invoice errors. Weekend rates typically have higher prices.
               </p>
             </div>
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: CLIENT_PANEL.horizontalActionGap,
-              marginTop: CLIENT_PANEL.horizontalActionMarginTop,
-              minWidth: 0,
-              width: '100%',
-            }}
-          >
-            <button
+          <div className="flex gap-2 mt-6 min-w-0 w-full">
+            <PrimaryBtn
               type="submit"
               disabled={saving}
-              style={clientPanelPrimaryFlexible({
-                opacity: saving ? 0.7 : 1,
-                cursor: saving ? 'not-allowed' : 'pointer',
-              })}
+              loading={saving}
+              loadingLabel="Saving..."
+              className="flex-1 min-w-0"
             >
-              <span style={clientPanelBtnLabel}>
-                {saving ? 'Saving...' : mode === 'new' ? 'Create Client' : 'Save Changes'}
+              <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                {mode === 'new' ? 'Create Client' : 'Save Changes'}
               </span>
-            </button>
-            <button type="button" onClick={onClose} style={clientPanelSecondaryCompact()}>
-              <span style={clientPanelBtnLabel}>Cancel</span>
-            </button>
+            </PrimaryBtn>
+            <SecondaryBtn type="button" onClick={onClose}>
+              <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">Cancel</span>
+            </SecondaryBtn>
           </div>
         </form>
-      </div>
+      </PanelContent>
     </>
   );
 }
@@ -227,27 +205,10 @@ export function ClientFormPanel({
 function FormField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p
-        style={{
-          margin: '0 0 0.3rem',
-          fontSize: typography.sizes.label,
-          fontWeight: typography.weights.bold,
-          letterSpacing: typography.letterSpacing.label,
-          textTransform: 'uppercase',
-          color: colors.muted,
-        }}
-      >
+      <p className="m-0 mb-1.5 text-[0.65rem] font-bold tracking-[0.06em] uppercase text-muted-foreground">
         {label}
       </p>
       {children}
     </div>
   );
 }
-
-const inputStyle: React.CSSProperties = {
-  ...formStyles.input,
-};
-
-const selectStyle: React.CSSProperties = {
-  ...formStyles.select,
-};

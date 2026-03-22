@@ -1,22 +1,20 @@
 'use client';
 
 import React from 'react';
+import { Send, CheckCircle, Download, XCircle, Loader2 } from 'lucide-react';
 import {
-  X,
-  Send,
-  CheckCircle,
-  Download,
-  XCircle,
-  Loader2,
-  Clock,
-  Calendar,
-  User,
-  FileText,
-} from 'lucide-react';
+  SheetHandle,
+  PanelHeader,
+  PanelFooter,
+  SectionLabel,
+  PrimaryBtn,
+  SecondaryBtn,
+  DangerBtn,
+} from '@/components/panels';
 import { cn } from '@/lib/utils';
+import type { InvoiceItem } from '@/db/schema/invoice_items';
 import type { InvoiceWithClient } from '@/repositories/invoices.repository';
 import InvoiceStatusBadge, { type InvoiceStatus } from './InvoiceStatusBadge';
-import InvoiceLineItems from './InvoiceLineItems';
 
 interface InvoiceDetailPanelProps {
   invoice: InvoiceWithClient;
@@ -47,17 +45,241 @@ function formatCurrency(amount: string | number): string {
   }).format(num);
 }
 
-function isOverdue(invoice: InvoiceWithClient): boolean {
-  if (invoice.status !== 'issued') return false;
-  return new Date(invoice.due_date) < new Date();
+/* ─── HeroCard ─────────────────────────────────────────────────────────── */
+
+function HeroCard({
+  invoice,
+  overdue,
+  daysOverdue,
+}: {
+  invoice: InvoiceWithClient;
+  overdue: boolean;
+  daysOverdue: number;
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-xl p-4 border',
+        'bg-[rgba(196,168,130,0.10)] border-[rgba(196,168,130,0.28)]',
+        'animate-in fade-in-0 zoom-in-[0.98] duration-200'
+      )}
+    >
+      <div className="flex items-start justify-between mb-2">
+        <span className="font-heading text-[15px] font-semibold text-foreground">
+          {invoice.invoice_number}
+        </span>
+        <InvoiceStatusBadge
+          status={invoice.status as InvoiceStatus}
+          dueDate={invoice.due_date ?? undefined}
+          size="sm"
+        />
+      </div>
+
+      <p className="text-[12px] text-muted-foreground mb-2">{invoice.client.name}</p>
+
+      <p className="font-heading text-[26px] font-semibold text-foreground leading-none mb-1">
+        {formatCurrency(invoice.total)}
+      </p>
+
+      {invoice.service_period_start && invoice.service_period_end && (
+        <p className="text-[11px] text-muted-foreground">
+          {formatDate(invoice.service_period_start)} – {formatDate(invoice.service_period_end)}
+        </p>
+      )}
+
+      {overdue && invoice.due_date && (
+        <div
+          className={cn(
+            'flex items-center gap-1.5 mt-2.5 px-2.5 py-1.5 rounded-md',
+            'bg-destructive/10 text-destructive/80',
+            'text-[11px] font-medium'
+          )}
+        >
+          <span className="relative flex h-[6px] w-[6px]">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-60" />
+            <span className="relative inline-flex rounded-full h-[6px] w-[6px] bg-destructive/80" />
+          </span>
+          {daysOverdue} day{daysOverdue !== 1 ? 's' : ''} overdue — due {formatDate(invoice.due_date)}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function getDaysOverdue(dueDate: Date | string): number {
-  const d = typeof dueDate === 'string' ? new Date(dueDate) : dueDate;
-  const now = new Date();
-  const diffTime = now.getTime() - d.getTime();
-  return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+/* ─── DatesSection ─────────────────────────────────────────────────────── */
+
+function MetaRow({
+  label,
+  value,
+  valueClassName,
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
+  return (
+    <div className="flex justify-between items-center py-[5px]">
+      <span className="text-[12px] text-muted-foreground">{label}</span>
+      <span className={cn('text-[12px] font-medium text-foreground', valueClassName)}>{value}</span>
+    </div>
+  );
 }
+
+function DatesSection({ invoice, overdue }: { invoice: InvoiceWithClient; overdue: boolean }) {
+  return (
+    <div>
+      <SectionLabel>Dates</SectionLabel>
+      <div className="space-y-0 divide-y divide-primary/50">
+        <MetaRow
+          label="Due date"
+          value={formatDate(invoice.due_date)}
+          valueClassName={overdue ? 'text-destructive font-medium' : undefined}
+        />
+        {invoice.issued_at && <MetaRow label="Issued" value={formatDate(invoice.issued_at)} />}
+        {invoice.paid_at && <MetaRow label="Paid" value={formatDate(invoice.paid_at)} />}
+      </div>
+    </div>
+  );
+}
+
+/* ─── LineItemsSection ───────────────────────────────────────────────────── */
+
+function LineItemsSection({ items, total }: { items: InvoiceItem[]; total: string }) {
+  return (
+    <div>
+      <SectionLabel>Sessions</SectionLabel>
+      <div className="rounded-lg border border-primary overflow-hidden">
+        {items.map((item) => {
+          const lineTotal = parseFloat(String(item.quantity)) * parseFloat(String(item.unit_price));
+          const isTravel = item.description.toLowerCase().includes('travel');
+
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                'flex items-center justify-between px-3 py-[7px]',
+                'text-[12px] border-b border-primary/60 last:border-b-0',
+                isTravel && 'bg-soft-cream/40'
+              )}
+            >
+              <span className="text-foreground flex-1 min-w-0 truncate pr-2">{item.description}</span>
+
+              {!isTravel && (
+                <span className="text-muted-foreground text-[11px] mr-3 whitespace-nowrap">
+                  {parseFloat(String(item.quantity)).toFixed(1)} hrs
+                </span>
+              )}
+
+              <span className="font-medium text-foreground whitespace-nowrap">
+                {formatCurrency(lineTotal)}
+              </span>
+            </div>
+          );
+        })}
+
+        <div className="flex items-center justify-between px-3 py-2 bg-soft-cream/60 border-t border-primary">
+          <span className="text-[12px] text-muted-foreground">Total</span>
+          <span className="font-heading text-[15px] font-semibold text-foreground">
+            {formatCurrency(total)}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── NotesSection ───────────────────────────────────────────────────────── */
+
+function NotesSection({ notes }: { notes: string }) {
+  return (
+    <div className="rounded-lg bg-soft-cream border border-primary p-3">
+      <SectionLabel>Notes</SectionLabel>
+      <p className="text-[12px] text-muted-foreground leading-relaxed">{notes}</p>
+    </div>
+  );
+}
+
+/* ─── ActionButtons ──────────────────────────────────────────────────────── */
+
+function ActionButtons({
+  invoice,
+  onIssue,
+  onMarkPaid,
+  onCancel,
+  onDownload,
+  actionLoading,
+  pdfLoading,
+}: {
+  invoice: InvoiceWithClient;
+  onIssue?: () => void;
+  onMarkPaid?: () => void;
+  onCancel?: () => void;
+  onDownload: () => void;
+  actionLoading: boolean;
+  pdfLoading: boolean;
+}) {
+  const { status } = invoice;
+
+  return (
+    <PanelFooter>
+      {status === 'draft' && onIssue && (
+        <>
+          <PrimaryBtn onClick={onIssue} loading={actionLoading} loadingLabel="Issuing…">
+            <Send size={14} />
+            Issue invoice
+          </PrimaryBtn>
+          <div className="flex gap-2">
+            <SecondaryBtn type="button" onClick={onDownload} disabled={pdfLoading}>
+              {pdfLoading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              Download
+            </SecondaryBtn>
+            {onCancel && (
+              <DangerBtn type="button" onClick={onCancel}>
+                <XCircle size={13} />
+                Cancel
+              </DangerBtn>
+            )}
+          </div>
+        </>
+      )}
+
+      {status === 'issued' && onMarkPaid && (
+        <>
+          <PrimaryBtn onClick={onMarkPaid} loading={actionLoading} loadingLabel="Saving…">
+            <CheckCircle size={14} />
+            Mark as paid
+          </PrimaryBtn>
+          <div className="flex gap-2">
+            <SecondaryBtn type="button" onClick={onDownload} disabled={pdfLoading}>
+              {pdfLoading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              Download
+            </SecondaryBtn>
+            {onCancel && (
+              <DangerBtn type="button" onClick={onCancel}>
+                <XCircle size={13} />
+                Cancel
+              </DangerBtn>
+            )}
+          </div>
+        </>
+      )}
+
+      {(status === 'paid' || status === 'cancelled') && (
+        <SecondaryBtn
+          type="button"
+          onClick={onDownload}
+          disabled={pdfLoading}
+          className="w-full flex-none"
+        >
+          {pdfLoading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+          Download PDF
+        </SecondaryBtn>
+      )}
+    </PanelFooter>
+  );
+}
+
+/* ─── Panel ─────────────────────────────────────────────────────────────── */
 
 export function InvoiceDetailPanel({
   invoice,
@@ -69,40 +291,39 @@ export function InvoiceDetailPanel({
   actionLoading,
   pdfLoading,
 }: InvoiceDetailPanelProps) {
-  const overdue = isOverdue(invoice);
-  const daysOverdue = overdue ? getDaysOverdue(invoice.due_date) : 0;
-  const canCancel = invoice.status !== 'paid' && invoice.status !== 'cancelled';
-  const hasItems = invoice.items && invoice.items.length > 0;
+  const overdue = invoice.status === 'issued' && invoice.due_date && new Date(invoice.due_date) < new Date();
+  const daysOverdue = overdue && invoice.due_date
+    ? Math.floor((Date.now() - new Date(invoice.due_date).getTime()) / 86400000)
+    : 0;
+
+  const notesTrimmed = invoice.notes?.trim();
 
   return (
-    <div className="flex flex-col h-full bg-card border-t-[3px] border-t-[hsl(32,28%,78%)]">
-      <PanelHeader invoiceNumber={invoice.invoice_number} onClose={onClose} />
-      
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        <InvoiceSummaryCard
-          invoice={invoice}
-          overdue={overdue}
-          daysOverdue={daysOverdue}
-        />
-        
-        <InvoiceMetaSection invoice={invoice} overdue={overdue} />
-        
-        {hasItems && (
-          <InvoiceLineItems
-            items={invoice.items!}
-            total={invoice.total}
-            collapsible={true}
-            defaultExpanded={true}
-            showHeaders={true}
-          />
-        )}
-        
-        {invoice.notes && (
-          <NotesSection notes={invoice.notes} />
-        )}
+    <div className="flex flex-col h-full min-h-0 bg-card overflow-hidden">
+      <SheetHandle className="md:hidden" />
+
+      <div className="h-[3px] w-full bg-[var(--panel-accent-invoice)] flex-shrink-0" aria-hidden />
+
+      <PanelHeader
+        showAccentBar={false}
+        breadcrumb="Invoices"
+        title="Invoice details"
+        onClose={onClose}
+      />
+
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
+        <HeroCard invoice={invoice} overdue={!!overdue} daysOverdue={daysOverdue} />
+        <div className="animate-in fade-in-0 duration-300 delay-100 space-y-4">
+          <DatesSection invoice={invoice} overdue={!!overdue} />
+          {invoice.items && invoice.items.length > 0 && (
+            <LineItemsSection items={invoice.items} total={String(invoice.total)} />
+          )}
+          {notesTrimmed ? <NotesSection notes={notesTrimmed} /> : null}
+        </div>
+        <div className="h-2" />
       </div>
-      
-      <PanelActions
+
+      <ActionButtons
         invoice={invoice}
         onIssue={onIssue}
         onMarkPaid={onMarkPaid}
@@ -110,269 +331,7 @@ export function InvoiceDetailPanel({
         onDownload={onDownload}
         actionLoading={actionLoading}
         pdfLoading={pdfLoading}
-        canCancel={canCancel}
       />
-    </div>
-  );
-}
-
-interface PanelHeaderProps {
-  invoiceNumber: string;
-  onClose: () => void;
-}
-
-function PanelHeader({ invoiceNumber, onClose }: PanelHeaderProps) {
-  return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-primary flex-shrink-0">
-      <div className="flex flex-col gap-0.5">
-        <span className="text-[11px] uppercase text-muted-foreground tracking-wider">
-          Invoices / {invoiceNumber}
-        </span>
-        <div className="flex items-center gap-2">
-          <FileText size={16} className="text-muted-foreground" />
-          <h2 className="font-heading text-base font-semibold text-foreground m-0">
-            Invoice Details
-          </h2>
-        </div>
-      </div>
-      <button
-        onClick={onClose}
-        className="w-8 h-8 rounded-lg border border-primary bg-muted flex items-center justify-center text-muted-foreground hover:bg-muted/80 transition-colors"
-      >
-        <X size={15} />
-      </button>
-    </div>
-  );
-}
-
-interface InvoiceSummaryCardProps {
-  invoice: InvoiceWithClient;
-  overdue: boolean;
-  daysOverdue: number;
-}
-
-function InvoiceSummaryCard({ invoice, overdue, daysOverdue }: InvoiceSummaryCardProps) {
-  return (
-    <div className="rounded-lg bg-muted border border-primary p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <span className="font-heading text-lg font-bold text-foreground">
-          {invoice.invoice_number}
-        </span>
-        <InvoiceStatusBadge
-          status={invoice.status as InvoiceStatus}
-          dueDate={invoice.due_date ?? undefined}
-          issuedAt={invoice.issued_at ?? undefined}
-          size="sm"
-        />
-      </div>
-      
-      <div className="flex items-center gap-2 mb-2">
-        <User size={13} className="text-muted-foreground" />
-        <span className="text-sm font-semibold text-foreground">
-          {invoice.client.name}
-        </span>
-      </div>
-      
-      <div className="font-heading text-2xl font-bold text-foreground">
-        {formatCurrency(invoice.total)}
-      </div>
-      
-      {overdue && (
-        <div className="mt-2 flex items-center gap-1.5 text-xs text-red-600 font-medium">
-          <Clock size={12} />
-          {daysOverdue} day{daysOverdue !== 1 ? 's' : ''} overdue
-        </div>
-      )}
-    </div>
-  );
-}
-
-interface InvoiceMetaSectionProps {
-  invoice: InvoiceWithClient;
-  overdue: boolean;
-}
-
-function InvoiceMetaSection({ invoice, overdue }: InvoiceMetaSectionProps) {
-  return (
-    <div className="space-y-3">
-      <InfoRow label="Invoice Date" value={formatDate(invoice.invoice_date)} icon={<Calendar size={12} />} />
-      <InfoRow label="Due Date" value={formatDate(invoice.due_date)} highlight={overdue} icon={<Calendar size={12} />} />
-      {invoice.issued_at && <InfoRow label="Issued" value={formatDate(invoice.issued_at)} />}
-      {invoice.paid_at && <InfoRow label="Paid" value={formatDate(invoice.paid_at)} />}
-    </div>
-  );
-}
-
-interface InfoRowProps {
-  label: string;
-  value: string;
-  highlight?: boolean;
-  icon?: React.ReactNode;
-}
-
-function InfoRow({ label, value, highlight = false, icon }: InfoRowProps) {
-  return (
-    <div className="flex justify-between items-center">
-      <span className="text-xs font-semibold tracking-wider uppercase text-muted-foreground flex items-center gap-1.5">
-        {icon}
-        {label}
-      </span>
-      <span
-        className={cn(
-          'text-sm',
-          highlight ? 'text-red-600 font-semibold' : 'text-foreground font-medium'
-        )}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
-
-interface NotesSectionProps {
-  notes: string;
-}
-
-function NotesSection({ notes }: NotesSectionProps) {
-  return (
-    <div className="rounded-lg bg-muted/50 border border-primary p-3">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-1.5">
-        Notes
-      </span>
-      <p className="text-sm text-muted-foreground">{notes}</p>
-    </div>
-  );
-}
-
-interface PanelActionsProps {
-  invoice: InvoiceWithClient;
-  onIssue?: () => void;
-  onMarkPaid?: () => void;
-  onCancel?: () => void;
-  onDownload: () => void;
-  actionLoading: boolean;
-  pdfLoading: boolean;
-  canCancel: boolean;
-}
-
-function PanelActions({
-  invoice,
-  onIssue,
-  onMarkPaid,
-  onCancel,
-  onDownload,
-  actionLoading,
-  pdfLoading,
-  canCancel,
-}: PanelActionsProps) {
-  return (
-    <div className="flex flex-col gap-2 p-4 border-t border-primary bg-muted/30">
-      {invoice.status === 'draft' && onIssue && (
-        <>
-          <button
-            onClick={onIssue}
-            disabled={actionLoading}
-            className="h-10 rounded-lg bg-sky-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-sm hover:bg-sky-700 disabled:opacity-50 transition-colors"
-          >
-            {actionLoading ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                Issuing...
-              </>
-            ) : (
-              <>
-                <Send size={14} />
-                Issue Invoice
-              </>
-            )}
-          </button>
-          <div className="flex gap-2">
-            <button
-              onClick={onDownload}
-              disabled={pdfLoading}
-              className="h-9 flex-1 px-3.5 rounded-lg border border-primary bg-transparent text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-muted disabled:opacity-50 transition-colors"
-            >
-              {pdfLoading ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <Download size={13} />
-              )}
-              Download
-            </button>
-            {onCancel && (
-              <button
-                onClick={onCancel}
-                disabled={actionLoading}
-                className="h-9 flex-1 px-3.5 rounded-lg border border-red-500/30 bg-transparent text-red-600 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-muted disabled:opacity-50 transition-colors"
-              >
-                <XCircle size={13} />
-                Cancel
-              </button>
-            )}
-          </div>
-        </>
-      )}
-
-      {invoice.status === 'issued' && onMarkPaid && (
-        <>
-          <button
-            onClick={onMarkPaid}
-            disabled={actionLoading}
-            className="h-10 rounded-lg bg-emerald-600 text-white text-sm font-semibold flex items-center justify-center gap-2 shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-          >
-            {actionLoading ? (
-              <>
-                <Loader2 size={14} className="animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <CheckCircle size={14} />
-                Mark as Paid
-              </>
-            )}
-          </button>
-          <div className="flex gap-2">
-            <button
-              onClick={onDownload}
-              disabled={pdfLoading}
-              className="h-9 flex-1 px-3.5 rounded-lg border border-primary bg-transparent text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-muted disabled:opacity-50 transition-colors"
-            >
-              {pdfLoading ? (
-                <Loader2 size={13} className="animate-spin" />
-              ) : (
-                <Download size={13} />
-              )}
-              Download
-            </button>
-            {canCancel && onCancel && (
-              <button
-                onClick={onCancel}
-                disabled={actionLoading}
-                className="h-9 flex-1 px-3.5 rounded-lg border border-red-500/30 bg-transparent text-red-600 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-muted disabled:opacity-50 transition-colors"
-              >
-                <XCircle size={13} />
-                Cancel
-              </button>
-            )}
-          </div>
-        </>
-      )}
-
-      {(invoice.status === 'paid' || invoice.status === 'cancelled') && (
-        <button
-          onClick={onDownload}
-          disabled={pdfLoading}
-          className="h-10 px-3.5 rounded-lg border border-primary bg-transparent text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-muted disabled:opacity-50 transition-colors"
-        >
-          {pdfLoading ? (
-            <Loader2 size={13} className="animate-spin" />
-          ) : (
-            <Download size={13} />
-          )}
-          Download PDF
-        </button>
-      )}
     </div>
   );
 }

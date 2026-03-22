@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,23 +24,24 @@ import {
   getWeekDays,
   formatDateForInput,
   formatTimeForInput,
-  formatWeekRange,
   formatTimeRange,
   formatDuration,
 } from '@/lib/date-utils';
 import type { AppointmentWithClient } from '@/repositories/appointments.repository';
 import type { Client } from '@/db/schema/clients';
 import type { NdisPricing } from '@/db/schema/ndis_pricing';
-import { 
-  colors,
-  shadows,
-  typography,
-  animations,
-  getClientPalette, 
-  GROUP_PALETTE, 
-  getAppointmentStatusStyle,
-} from '@/styles/botanical';
+import { colors, getClientPalette, GROUP_PALETTE } from '@/styles/botanical';
 import ScheduleCalendar from './_components/ScheduleCalendar';
+import {
+  SheetHandle,
+  PanelHeader,
+  PanelFooter,
+  SectionLabel,
+  MetaRow,
+  PrimaryBtn,
+  SecondaryBtn,
+  DangerBtn,
+} from '@/components/panels';
 import { cn } from '@/lib/utils';
 
 type PanelMode = 'empty' | 'view' | 'new' | 'edit' | 'deleteConfirm' | 'complete';
@@ -78,6 +80,7 @@ export default function AppointmentsPage() {
   const [completeNotes, setCompleteNotes] = useState('');
   const [panelMode, setPanelMode] = useState<PanelMode>('empty');
   const [panelVisible, setPanelVisible] = useState(false);
+  const [panelClosing, setPanelClosing] = useState(false);
   const [panelCollapsed, setPanelCollapsed] = useState(false);
 
   const today = new Date();
@@ -160,17 +163,20 @@ export default function AppointmentsPage() {
   // ============================================================================
 
   const openPanel = (mode: PanelMode) => {
+    setPanelClosing(false);
     setPanelMode(mode);
-    setTimeout(() => setPanelVisible(true), 10);
+    setTimeout(() => setPanelVisible(true), 75);
   };
 
   const closePanel = () => {
     setPanelVisible(false);
+    setPanelClosing(true);
     setPanelCollapsed(false);
     setTimeout(() => {
       setSelectedAppointment(null);
       setPanelMode('empty');
       setCompleteNotes('');
+      setPanelClosing(false);
       setFormData({ client_id: '', date: '', start_time: '', duration: '60', end_time: '', notes: '', is_group: false, rate_code: '', participants: [], status: 'confirmed' });
     }, 300);
   };
@@ -525,33 +531,38 @@ export default function AppointmentsPage() {
         {/* MOBILE BACKDROP */}
         {panelMode !== 'empty' && (
           <div
-            className="md:hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-30"
+            className={cn(
+              'md:hidden fixed inset-0 z-40 bg-foreground/30 backdrop-blur-[2px]',
+              'transition-opacity duration-200',
+              panelVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            )}
             onClick={closePanel}
+            aria-hidden
           />
         )}
 
-        {/* RIGHT DETAIL PANEL - Single panel with responsive behavior */}
-        <aside
-          className={`fixed inset-y-0 right-0 z-40 w-full sm:w-[380px] bg-card border-l border-primary flex flex-col transition-all duration-280 ease-out overflow-hidden md:relative md:inset-auto md:flex-shrink-0 md:min-w-0 ${
-            !panelVisible || panelMode === 'empty' ? 'translate-x-full md:translate-x-0 md:w-0 md:border-l-0' :
-            panelCollapsed ? 'translate-x-0 md:w-12' : 'translate-x-0 md:w-[360px]'
-          }`}
-          style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+        {/* MOBILE BOTTOM SHEET */}
+        <div
+          className={cn(
+            'md:hidden fixed inset-x-0 bottom-0 z-50',
+            'flex flex-col bg-card rounded-t-[20px] rounded-b-none border-t border-primary',
+            'max-h-[88vh] overflow-hidden',
+            'transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+            (!panelVisible || panelMode === 'empty' || panelClosing) && 'translate-y-full'
+          )}
         >
           <div
-            className={`w-full flex flex-col h-full overflow-hidden opacity-0 transition-opacity duration-240 ${
-              panelVisible ? 'opacity-100 translate-x-0' : 'translate-x-5'
-            } ${panelCollapsed ? 'md:opacity-0 md:overflow-hidden' : ''}`}
-            style={{ transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)' }}
+            key={panelMode}
+            className="flex flex-col h-full min-h-0 animate-in fade-in-0 duration-150"
           >
             {panelMode === 'view' && selectedAppointment && (
-              <ViewPanel 
-                appt={selectedAppointment} 
-                clients={clients} 
-                onClose={closePanel} 
-                onEdit={openEditMode} 
-                onDelete={() => setPanelMode('deleteConfirm')} 
-                onComplete={() => { setCompleteNotes(''); setPanelMode('complete'); }} 
+              <ViewPanel
+                appt={selectedAppointment}
+                clients={clients}
+                onClose={closePanel}
+                onEdit={openEditMode}
+                onDelete={() => setPanelMode('deleteConfirm')}
+                onComplete={() => { setCompleteNotes(''); setPanelMode('complete'); }}
                 onConfirm={handleConfirm}
                 confirming={confirming}
                 completing={completing}
@@ -569,6 +580,63 @@ export default function AppointmentsPage() {
               <CompletePanel appt={selectedAppointment} notes={completeNotes} setNotes={setCompleteNotes} onClose={closePanel} onBack={() => setPanelMode('view')} onComplete={handleComplete} completing={completing} onToggle={() => setPanelCollapsed(!panelCollapsed)} collapsed={panelCollapsed} />
             )}
           </div>
+        </div>
+
+        {/* DESKTOP RIGHT SLIDE-OUT */}
+        <aside
+          className={cn(
+            'hidden md:flex flex-col overflow-hidden bg-card border-l border-primary flex-shrink-0',
+            'transition-[width] duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
+            !(panelVisible && panelMode !== 'empty' && !panelClosing) && 'md:w-0 md:border-l-0',
+            panelVisible && panelMode !== 'empty' && !panelClosing && !panelCollapsed && 'md:w-[360px]',
+            panelVisible && panelMode !== 'empty' && !panelClosing && panelCollapsed && 'md:w-12'
+          )}
+        >
+          {panelCollapsed ? (
+            <button
+              type="button"
+              onClick={() => setPanelCollapsed(false)}
+              className="w-12 h-full flex items-center justify-center border-l border-primary bg-soft-cream/40 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+              title="Expand panel"
+              aria-label="Expand panel"
+            >
+              <ChevronLeft size={16} />
+            </button>
+          ) : (
+          <div
+            key={panelMode}
+            className={cn(
+              'w-[360px] h-full min-h-0 flex flex-col animate-in fade-in-0 duration-150',
+              'transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)]',
+              panelVisible && panelMode !== 'empty' ? 'opacity-100 translate-x-0 md:delay-75' : 'opacity-0 translate-x-4 md:delay-0'
+            )}
+          >
+            {panelMode === 'view' && selectedAppointment && (
+              <ViewPanel
+                appt={selectedAppointment}
+                clients={clients}
+                onClose={closePanel}
+                onEdit={openEditMode}
+                onDelete={() => setPanelMode('deleteConfirm')}
+                onComplete={() => { setCompleteNotes(''); setPanelMode('complete'); }}
+                onConfirm={handleConfirm}
+                confirming={confirming}
+                completing={completing}
+                onToggle={() => setPanelCollapsed(!panelCollapsed)}
+                collapsed={panelCollapsed}
+              />
+            )}
+            {(panelMode === 'new' || panelMode === 'edit') && (
+              <FormPanel panelMode={panelMode} formData={formData} setFormData={setFormData} clients={clients} rateCodes={rateCodes} onClose={closePanel} onSubmit={handleSubmit} saving={saving} onToggle={() => setPanelCollapsed(!panelCollapsed)} collapsed={panelCollapsed} />
+            )}
+            {panelMode === 'deleteConfirm' && selectedAppointment && (
+              <DeletePanel appt={selectedAppointment} onClose={closePanel} onBack={() => setPanelMode('view')} onDelete={handleDelete} deleting={deleting} onToggle={() => setPanelCollapsed(!panelCollapsed)} collapsed={panelCollapsed} />
+            )}
+            {panelMode === 'complete' && selectedAppointment && (
+              <CompletePanel appt={selectedAppointment} notes={completeNotes} setNotes={setCompleteNotes} onClose={closePanel} onBack={() => setPanelMode('view')} onComplete={handleComplete} completing={completing} onToggle={() => setPanelCollapsed(!panelCollapsed)} collapsed={panelCollapsed} />
+            )}
+          </div>
+          )}
         </aside>
       </div>
     </div>
@@ -597,39 +665,15 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   );
 }
 
-function PanelHeader({ title, onClose, accent, onToggle, collapsed }: { title: string; onClose: () => void; accent?: string; onToggle?: () => void; collapsed?: boolean }) {
-  return (
-    <div className="flex items-center justify-between px-5 py-3.5 border-b border-primary flex-shrink-0">
-      <div className="flex items-center gap-2.5">
-        {onToggle && (
-          <button 
-            onClick={onToggle} 
-            className="hidden md:flex w-7 h-7 rounded-lg border border-primary bg-card cursor-pointer items-center justify-center text-secondary hover:bg-primary/7 hover:text-foreground transition-all duration-200 hover:shadow-sm active:scale-95"
-            title={collapsed ? "Expand panel" : "Collapse panel"}
-          >
-            {collapsed ? <ChevronLeft size={14} /> : <ChevronRight size={14} />}
-          </button>
-        )}
-        <h2 className="font-heading text-[15px] font-semibold m-0 tracking-tight" style={{ color: accent ?? 'hsl(145 15% 22%)' }}>{title}</h2>
-      </div>
-      <button onClick={onClose} className="w-8 h-8 rounded-lg border border-primary bg-card cursor-pointer flex items-center justify-center text-secondary hover:bg-muted hover:text-foreground transition-all duration-200 hover:shadow-sm active:scale-95">
-        <X size={15} />
-      </button>
-    </div>
-  );
-}
-
-function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="flex gap-[0.65rem] items-start">
-      <div className="mt-0.5 text-faint flex-shrink-0">{icon}</div>
-      <div>
-        <p className="m-0 text-[10.5px] font-semibold tracking-[0.06em] uppercase text-secondary">{label}</p>
-        <p className="m-[2px]_0 text-[13px] text-foreground font-medium">{value}</p>
-      </div>
-    </div>
-  );
-}
+// Accent colours by panel/status
+const ACCENT = {
+  viewConfirmed: '#7895aa',
+  viewCompleted: '#5a8a60',
+  viewPending: '#b69470',
+  form: 'var(--color-primary)',
+  complete: '#5a8a60',
+  cancel: '#a04040',
+} as const;
 
 // ============================================================================
 // VIEW PANEL
@@ -651,60 +695,69 @@ function ViewPanel({ appt, clients, onClose, onEdit, onDelete, onComplete, onCon
   const isPending = appt.status === 'pending';
   const isConfirmed = appt.status === 'confirmed';
   const isCompleted = appt.status === 'completed';
+  const isCancelled = appt.status === 'cancelled';
   const isGroup = appt.is_group;
-  const palette = isCompleted ? { dot: '#839977', bg: 'rgba(131,153,119,0.12)', text: '#3a4d34' } : isGroup ? GROUP_PALETTE : getClientPalette(appt.client_id || appt.id);
+  const displayName = isGroup ? `Group Session (${appt.participants?.length || appt.group_size || 0} participants)` : appt.client?.name ?? 'Unknown Client';
+  const initials = isGroup ? '' : (appt.client?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() ?? '?');
+
+  const viewAccent = isCancelled ? ACCENT.cancel : isCompleted ? ACCENT.viewCompleted : isConfirmed ? ACCENT.viewConfirmed : ACCENT.viewPending;
+  const heroPalette = isCancelled ? { dot: '#a88c9e', bg: 'rgba(168,140,158,0.14)', border: 'rgba(168,140,158,0.35)' } : isCompleted ? { dot: '#5a8a60', bg: 'rgba(90,138,96,0.12)', border: 'rgba(90,138,96,0.28)' } : isGroup ? { dot: GROUP_PALETTE.dot, bg: GROUP_PALETTE.bg, border: 'rgba(107,163,152,0.35)' } : (() => { const p = getClientPalette(appt.client_id || appt.id); return { dot: p.dot, bg: p.bg, border: `${p.dot}45` }; })();
+
+  const formattedDate = new Date(appt.starts_at).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  const formattedTimeRange = formatTimeRange(new Date(appt.starts_at), new Date(appt.ends_at));
+  const formattedDuration = formatDuration(new Date(appt.starts_at), new Date(appt.ends_at));
 
   return (
-    <>
-      <PanelHeader title="Session Details" onClose={onClose} onToggle={onToggle} collapsed={collapsed} />
-      <div className="flex-1 overflow-y-auto p-4">
-        {/* Client/Group card */}
-        <div className={`flex ${isGroup ? 'items-start' : 'items-center'} gap-3 p-3.5 rounded-[10px] mb-5`} style={{ background: palette.bg, border: `1px solid ${palette.dot}28` }}>
-          {isGroup ? (
-            <div className="w-[38px] h-[38px] rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: palette.dot }}>
-              <Users size={18} color="#fff" />
-            </div>
-          ) : (
-            <div className="w-[38px] h-[38px] rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: palette.dot }}>
-              <span className="text-[13px] font-bold text-white">{appt.client?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() ?? '?'}</span>
-            </div>
+    <div className="flex flex-col h-full min-h-0 bg-card overflow-hidden">
+      <SheetHandle className="md:hidden" />
+      <div className="h-[3px] w-full flex-shrink-0" style={{ background: viewAccent }} aria-hidden />
+
+      <PanelHeader
+        breadcrumb="Schedule"
+        title="Session details"
+        showAccentBar={false}
+        titleColorClass="text-foreground"
+        onClose={onClose}
+        onToggle={onToggle}
+        collapsed={collapsed}
+      />
+
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
+        <div
+          className={cn(
+            'flex items-center gap-3 rounded-xl p-4 border',
+            'animate-in fade-in-0 zoom-in-[0.98] duration-200'
           )}
-          <div className="flex-1">
-            <p className="m-0 font-heading text-[15px] font-semibold text-foreground">
-              {isGroup ? `Group Session (${appt.participants?.length || appt.group_size || 0} participants)` : appt.client?.name ?? 'Unknown Client'}
-            </p>
-            <div className="inline-flex items-center gap-1 mt-1">
-              <span className="text-[10.5px] font-semibold px-2 rounded-[99px]" style={{ padding: '1px 8px', background: isCompleted ? 'rgba(131,153,119,0.22)' : 'rgba(90,127,168,0.15)', color: isCompleted ? '#4a6640' : '#3a6080', textTransform: 'capitalize' }}>
-                {appt.status}
-              </span>
-              {isGroup && (
-                <span className="text-[10.5px] font-semibold px-2 rounded-[99px]" style={{ padding: '1px 8px', background: 'rgba(107,163,152,0.15)', color: '#1e4a44' }}>
-                  Group
-                </span>
-              )}
-              {appt.invoiced && (
-                <span className="text-[10.5px] font-semibold px-2 rounded-[99px]" style={{ padding: '1px 8px', background: 'rgba(172,163,118,0.2)', color: '#5a5225' }}>Invoiced</span>
-              )}
+          style={{ background: heroPalette.bg, borderColor: heroPalette.border }}
+        >
+          <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: heroPalette.dot }}>
+            {isGroup ? <Users size={16} color="#fff" /> : <span className="text-[13px] font-medium text-white">{initials}</span>}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-heading text-[15px] font-semibold text-foreground truncate mb-1">{displayName}</p>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <StatusPill status={appt.status} />
+              {isGroup && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[rgba(107,163,152,0.18)] text-[#1e4a44]">Group</span>}
+              {appt.invoiced && <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[rgba(172,163,118,0.18)] text-[#7a6a30]">Invoiced</span>}
             </div>
           </div>
         </div>
 
-        {/* Participant list for group sessions */}
         {isGroup && appt.participants && appt.participants.length > 0 && (
-          <div className="mb-5">
-            <p className="m-0 mb-2 text-[11px] font-bold tracking-[0.06em] uppercase text-secondary">Participants</p>
-            <div className="flex flex-col gap-[0.4rem]">
+          <div>
+            <SectionLabel>Participants</SectionLabel>
+            <div className="divide-y divide-primary/50">
               {appt.participants.map((p, idx) => {
                 const client = clients.find(c => c.id === p.client_id);
-                const clientPalette = getClientPalette(p.client_id);
+                const cp = getClientPalette(p.client_id);
                 const splitPercent = Math.round(parseFloat(p.split_rate) * 100);
                 return (
-                  <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-[6px]" style={{ background: 'hsl(47 22% 94%)', border: '1px solid hsl(37 18% 89%)' }}>
-                    <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: clientPalette.dot }}>
-                      <span className="text-[10px] font-bold text-white">{client?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() ?? '?'}</span>
+                  <div key={idx} className="flex items-center gap-2 py-[6px]">
+                    <div className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: cp.dot }}>
+                      <span className="text-[10px] font-medium text-white">{client?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() ?? '?'}</span>
                     </div>
-                    <span className="flex-1 text-[13px] text-foreground font-medium">{client?.name ?? 'Unknown'}</span>
-                    <span className="text-[11.5px] text-secondary font-semibold">{splitPercent}%</span>
+                    <span className="flex-1 text-[12px] font-medium text-foreground truncate">{client?.name ?? 'Unknown'}</span>
+                    <span className="text-[11px] text-muted-foreground font-medium">{splitPercent}%</span>
                   </div>
                 );
               })}
@@ -712,79 +765,110 @@ function ViewPanel({ appt, clients, onClose, onEdit, onDelete, onComplete, onCon
           </div>
         )}
 
-        {/* Details */}
-        <div className="flex flex-col gap-[0.85rem] mb-5">
-          <InfoRow icon={<Calendar size={14} />} label="Date" value={new Date(appt.starts_at).toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} />
-          <InfoRow icon={<Clock size={14} />} label="Time" value={formatTimeRange(new Date(appt.starts_at), new Date(appt.ends_at))} />
-          <InfoRow icon={<Clock size={14} />} label="Duration" value={formatDuration(new Date(appt.starts_at), new Date(appt.ends_at))} />
-          {isGroup && appt.rate_code && (
-            <InfoRow icon={<FileText size={14} />} label="Rate Code" value={appt.rate_code} />
-          )}
-          {appt.invoiced && appt.invoice_ref && (
-            <InfoRow icon={<FileText size={14} />} label="Invoice" value={appt.invoice_ref} />
-          )}
+        <div>
+          <SectionLabel>Session</SectionLabel>
+          <div className="divide-y divide-primary/50">
+            <MetaRow label="Date" value={formattedDate} />
+            <MetaRow label="Time" value={formattedTimeRange} />
+            <MetaRow label="Duration" value={formattedDuration} />
+            {isGroup && appt.rate_code && <MetaRow label="Rate code" value={appt.rate_code} />}
+            {appt.invoiced && appt.invoice_ref && <MetaRow label="Invoice" value={appt.invoice_ref} />}
+          </div>
         </div>
 
-        {/* Notes */}
         {appt.notes && (
-          <div className="mb-5">
-            <p className="m-0 mb-[0.4rem] text-[10.5px] font-bold tracking-[0.06em] uppercase text-secondary">Session Notes</p>
-            <div className="px-3.5 py-2.5 rounded-lg text-[13px] leading-relaxed" style={{ background: 'hsl(47 22% 94%)', border: '1px solid hsl(37 18% 89%)', color: 'hsl(145 15% 28%)', lineHeight: 1.55 }}>
-              {appt.notes}
-            </div>
+          <div className="rounded-lg bg-soft-cream border border-primary p-3">
+            <SectionLabel>Notes</SectionLabel>
+            <p className="text-[12px] text-muted-foreground leading-relaxed m-0">{appt.notes}</p>
           </div>
         )}
 
-        {/* Actions */}
-        {!appt.invoiced ? (
-          <div className="flex flex-col gap-2">
+        {appt.invoiced && (
+          <div className="rounded-lg bg-[rgba(172,163,118,0.12)] border border-[rgba(172,163,118,0.25)] px-3 py-2.5">
+            <p className="text-[12px] text-[#5a5225] m-0">
+              This session is invoiced and cannot be modified.
+              {appt.invoice_ref && <span className="font-medium ml-1">{appt.invoice_ref}</span>}
+            </p>
+          </div>
+        )}
+
+        {!appt.invoiced && !isCancelled && (
+          <PanelFooter>
             {isPending && (
               <>
-                <button onClick={onConfirm} disabled={confirming} className="h-9 rounded-lg border-none flex items-center justify-center gap-1.5 font-semibold cursor-pointer text-white" style={{ background: '#7895aa' }}>
+                <PrimaryBtn onClick={onConfirm} loading={confirming} loadingLabel="Confirming…" style={{ background: ACCENT.viewConfirmed }} className="hover:opacity-90">
                   <CheckCircle size={14} />
-                  {confirming ? 'Confirming…' : 'Confirm Appointment'}
-                </button>
+                  Confirm appointment
+                </PrimaryBtn>
                 <div className="flex gap-2">
-                  <button onClick={onEdit} className="h-9 px-3.5 rounded-lg border border-secondary bg-transparent text-body text-[13px] font-medium cursor-pointer flex items-center justify-center gap-1 flex-1">
-                    <Pencil size={13} /> Edit
-                  </button>
-                  <button onClick={onDelete} className="h-9 px-3.5 rounded-lg border bg-transparent text-[13px] font-medium cursor-pointer flex items-center justify-center gap-1 flex-1" style={{ borderColor: 'rgba(160,64,64,0.3)', color: '#a04040' }}>
-                    <Trash2 size={13} /> Cancel
-                  </button>
+                  <SecondaryBtn type="button" onClick={onEdit}>
+                    <Pencil size={13} />
+                    Reschedule
+                  </SecondaryBtn>
+                  <DangerBtn type="button" onClick={onDelete}>
+                    <Trash2 size={13} />
+                    Cancel
+                  </DangerBtn>
                 </div>
               </>
             )}
             {isConfirmed && (
               <>
-                <button onClick={onComplete} disabled={completing} className="h-9 rounded-lg border-none flex items-center justify-center gap-1.5 font-semibold cursor-pointer text-white" style={{ background: '#5a8a60' }}>
+                <PrimaryBtn onClick={onComplete} loading={completing} loadingLabel="Saving…" style={{ background: ACCENT.viewCompleted }} className="hover:opacity-90">
                   <CheckCircle size={14} />
-                  {completing ? 'Completing…' : 'Mark Complete'}
-                </button>
+                  Mark complete
+                </PrimaryBtn>
                 <div className="flex gap-2">
-                  <button onClick={onEdit} className="h-9 px-3.5 rounded-lg border border-secondary bg-transparent text-body text-[13px] font-medium cursor-pointer flex items-center justify-center gap-1 flex-1">
-                    <Pencil size={13} /> Reschedule
-                  </button>
-                  <button onClick={onDelete} className="h-9 px-3.5 rounded-lg border bg-transparent text-[13px] font-medium cursor-pointer flex items-center justify-center gap-1 flex-1" style={{ borderColor: 'rgba(160,64,64,0.3)', color: '#a04040' }}>
-                    <Trash2 size={13} /> Cancel
-                  </button>
+                  <SecondaryBtn type="button" onClick={onEdit}>
+                    <Pencil size={13} />
+                    Reschedule
+                  </SecondaryBtn>
+                  <DangerBtn type="button" onClick={onDelete}>
+                    <Trash2 size={13} />
+                    Cancel
+                  </DangerBtn>
                 </div>
               </>
             )}
             {isCompleted && (
-              <button className="h-9 px-3.5 rounded-lg border border-secondary bg-transparent text-body text-[13px] font-medium cursor-pointer flex items-center justify-center gap-1">
-                <FileText size={13} /> View Invoice
-              </button>
+              <Link
+                href="/admin/invoices?tab=generate"
+                className={cn(
+                  'h-11 md:h-10 w-full rounded-lg border border-primary bg-card',
+                  'text-[12px] font-medium text-foreground/70 flex items-center justify-center gap-1.5',
+                  'hover:bg-muted hover:text-foreground transition-all duration-150'
+                )}
+              >
+                <FileText size={13} />
+                Go to invoices
+              </Link>
             )}
-          </div>
-        ) : (
-          <p className="text-[12.5px] text-secondary text-center italic">
-            This session has been invoiced and cannot be modified.
-          </p>
+          </PanelFooter>
         )}
+
+        <div className="h-2" />
       </div>
-    </>
+    </div>
   );
 }
+
+function StatusPill({ status }: { status: string }) {
+  const config: Record<string, { bg: string; text: string }> = {
+    completed: { bg: 'rgba(90,138,96,0.12)', text: '#3a5a3e' },
+    confirmed: { bg: 'rgba(120,149,170,0.12)', text: '#2d4a5c' },
+    pending: { bg: 'rgba(182,148,112,0.14)', text: '#6b4d2f' },
+    cancelled: { bg: 'rgba(168,140,158,0.14)', text: '#6b3a5c' },
+  };
+  const c = config[status] ?? config.confirmed;
+  return (
+    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ background: c.bg, color: c.text }}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+}
+
+const inputClasses = 'w-full h-9 px-3 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-foreground outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200';
+const textareaClasses = 'w-full min-h-[72px] py-2 px-3 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-foreground outline-none resize-y focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 leading-relaxed';
 
 // ============================================================================
 // FORM PANEL
@@ -805,20 +889,8 @@ function FormPanel({ panelMode, formData, setFormData, clients, rateCodes, onClo
   const isGroup = formData.is_group;
   const participantCount = formData.participants.length;
 
-  const addParticipant = () => {
-    setFormData({
-      ...formData,
-      participants: [...formData.participants, ''],
-    });
-  };
-
-  const removeParticipant = (index: number) => {
-    setFormData({
-      ...formData,
-      participants: formData.participants.filter((_: any, i: number) => i !== index),
-    });
-  };
-
+  const addParticipant = () => setFormData({ ...formData, participants: [...formData.participants, ''] });
+  const removeParticipant = (index: number) => setFormData({ ...formData, participants: formData.participants.filter((_: any, i: number) => i !== index) });
   const updateParticipant = (index: number, clientId: string) => {
     const updated = [...formData.participants];
     updated[index] = clientId;
@@ -826,231 +898,152 @@ function FormPanel({ panelMode, formData, setFormData, clients, rateCodes, onClo
   };
 
   return (
-    <>
-      <PanelHeader title={panelMode === 'new' ? 'Book Session' : 'Reschedule Session'} onClose={onClose} onToggle={onToggle} collapsed={collapsed} />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '1.1rem' }}>
-        <form onSubmit={onSubmit}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-            
-            {/* Session Type Toggle */}
-            <FormField label="Session Type">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, is_group: false, participants: [], rate_code: '' })}
-                  className={`flex-1 h-9 rounded-lg border font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-200 hover:shadow-sm ${
-                    !isGroup 
-                      ? 'border-[hsl(130_13%_50%)] bg-[hsl(130_13%_50%/0.1)] text-[hsl(130_13%_35%)]' 
-                      : 'border-[hsl(37_18%_85%)] bg-transparent text-secondary hover:text-foreground'
-                  }`}
-                >
-                  <User size={14} /> Individual
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, is_group: true, client_id: '' })}
-                  className={`flex-1 h-9 rounded-lg border font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-200 hover:shadow-sm ${
-                    isGroup 
-                      ? 'border-[hsl(130_13%_50%)] bg-[hsl(130_13%_50%/0.1)] text-[hsl(130_13%_35%)]' 
-                      : 'border-[hsl(37_18%_85%)] bg-transparent text-secondary hover:text-foreground'
-                  }`}
-                >
-                  <Users size={14} /> Group
-                </button>
-              </div>
-            </FormField>
+    <div className="flex flex-col h-full min-h-0 bg-card overflow-hidden">
+      <SheetHandle className="md:hidden" />
+      <div className="h-[3px] w-full flex-shrink-0 bg-primary" aria-hidden />
 
-            {/* Individual: Single client selector */}
-            {!isGroup && (
-              <FormField label="Client">
-                <select
-                  value={formData.client_id}
-                  onChange={e => setFormData({ ...formData, client_id: e.target.value })}
-                  required
-                  className="w-full h-9 px-2.5 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-[hsl(145_15%_22%)] outline-none cursor-pointer focus:border-[hsl(130_13%_50%)] focus:ring-2 focus:ring-[hsl(130_13%_50%/0.2)] transition-all duration-200"
-                >
-                  <option value="">Select a client…</option>
-                  {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </FormField>
-            )}
+      <PanelHeader
+        breadcrumb="Schedule"
+        title={panelMode === 'new' ? 'Book session' : 'Reschedule session'}
+        showAccentBar={false}
+        onClose={onClose}
+        onToggle={onToggle}
+        collapsed={collapsed}
+      />
 
-            {/* Group: Rate code + participants */}
-            {isGroup && (
-              <>
-                <FormField label="Rate Code">
-                  <select
-                    value={formData.rate_code}
-                    onChange={e => setFormData({ ...formData, rate_code: e.target.value })}
-                    required
-                    className="w-full h-9 px-2.5 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-[hsl(145_15%_22%)] outline-none cursor-pointer focus:border-[hsl(130_13%_50%)] focus:ring-2 focus:ring-[hsl(130_13%_50%/0.2)] transition-all duration-200"
-                  >
-                    <option value="">Select a rate code…</option>
-                    {rateCodes.map(rc => (
-                      <option key={rc.id} value={rc.support_item_code}>
-                        {rc.support_item_code} — {rc.support_item_name}
-                      </option>
-                    ))}
-                  </select>
-                </FormField>
-
-                <FormField label={`Participants (${participantCount}) — split evenly`}>
-                  <div className="flex flex-col gap-2">
-                    {formData.participants.map((clientId: string, idx: number) => (
-                      <div key={idx} className="flex gap-[0.4rem] items-center">
-                        <select
-                          value={clientId}
-                          onChange={e => updateParticipant(idx, e.target.value)}
-                          required
-                          className="flex-1 h-9 px-2.5 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-[hsl(145_15%_22%)] outline-none cursor-pointer focus:border-[hsl(130_13%_50%)] focus:ring-2 focus:ring-[hsl(130_13%_50%/0.2)] transition-all duration-200"
-                        >
-                          <option value="">Select…</option>
-                          {clients.filter(c => !formData.participants.includes(c.id) || c.id === clientId).map(c => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={() => removeParticipant(idx)}
-                          className="w-7 h-7 rounded-lg border border-[hsl(37_18%_85%)] bg-transparent cursor-pointer flex items-center justify-center text-red hover:bg-red/7 transition-all duration-200 hover:shadow-sm"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                    
-                    <button
-                      type="button"
-                      onClick={addParticipant}
-                      className="h-8 rounded-lg border border-dashed border-[hsl(37_18%_70%)] bg-transparent cursor-pointer text-[12px] text-secondary flex items-center justify-center gap-1 transition-colors duration-200 hover:border-[hsl(130_13%_50%)] hover:text-[hsl(130_13%_35%)]"
-                    >
-                      <Plus size={12} /> Add Participant
-                    </button>
-                  </div>
-                </FormField>
-              </>
-            )}
-
-            {/* Date */}
-            <FormField label="Date">
-              <input 
-                type="date" 
-                value={formData.date} 
-                onChange={e => setFormData({ ...formData, date: e.target.value })} 
-                required 
-                className="w-full h-9 px-2.5 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-[hsl(145_15%_22%)] outline-none focus:border-[hsl(130_13%_50%)] focus:ring-2 focus:ring-[hsl(130_13%_50%/0.2)] transition-all duration-200"
-              />
-            </FormField>
-
-            {/* Start + Duration */}
-            <div className="grid grid-cols-2 gap-[0.65rem]">
-              <FormField label="Start Time">
-                <input 
-                  type="time" 
-                  value={formData.start_time} 
-                  onChange={e => setFormData({ ...formData, start_time: e.target.value })} 
-                  required 
-                  className="w-full h-9 px-2.5 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-[hsl(145_15%_22%)] outline-none focus:border-[hsl(130_13%_50%)] focus:ring-2 focus:ring-[hsl(130_13%_50%/0.2)] transition-all duration-200"
-                />
-              </FormField>
-              <FormField label="Duration">
-                <select
-                  value={formData.duration}
-                  onChange={e => {
-                    const dur = e.target.value;
-                    let end_time = formData.end_time;
-                    if (dur !== 'custom') {
-                      const [h, m] = formData.start_time.split(':').map(Number);
-                      const total = h * 60 + m + parseInt(dur);
-                      end_time = `${Math.floor(total / 60).toString().padStart(2, '0')}:${(total % 60).toString().padStart(2, '0')}`;
-                    }
-                    setFormData({ ...formData, duration: dur, end_time });
-                  }}
-                  className="w-full h-9 px-2.5 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-[hsl(145_15%_22%)] outline-none cursor-pointer focus:border-[hsl(130_13%_50%)] focus:ring-2 focus:ring-[hsl(130_13%_50%/0.2)] transition-all duration-200"
-                >
-                  <option value="30">30 min</option>
-                  <option value="60">1 hour</option>
-                  <option value="90">1.5 hours</option>
-                  <option value="120">2 hours</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </FormField>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4">
+        <form onSubmit={onSubmit} className="flex flex-col gap-4">
+          <FormField label="Session type">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, is_group: false, participants: [], rate_code: '' })}
+                className={cn('flex-1 h-9 rounded-lg border font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all', !isGroup ? 'border-primary/50 bg-primary/10 text-primary' : 'border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)] hover:text-foreground')}
+              >
+                <User size={14} /> Individual
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, is_group: true, client_id: '' })}
+                className={cn('flex-1 h-9 rounded-lg border font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all', isGroup ? 'border-primary/50 bg-primary/10 text-primary' : 'border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)] hover:text-foreground')}
+              >
+                <Users size={14} /> Group
+              </button>
             </div>
+          </FormField>
 
-            {formData.duration === 'custom' && (
-              <FormField label="End Time">
-                <input 
-                  type="time" 
-                  value={formData.end_time} 
-                  onChange={e => setFormData({ ...formData, end_time: e.target.value })} 
-                  required 
-                  className="w-full h-9 px-2.5 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-[hsl(145_15%_22%)] outline-none focus:border-[hsl(130_13%_50%)] focus:ring-2 focus:ring-[hsl(130_13%_50%/0.2)] transition-all duration-200"
-                />
+          {!isGroup && (
+            <FormField label="Client">
+              <select value={formData.client_id} onChange={e => setFormData({ ...formData, client_id: e.target.value })} required className={cn(inputClasses, 'cursor-pointer')}>
+                <option value="">Select a client…</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </FormField>
+          )}
+
+          {isGroup && (
+            <>
+              <FormField label="Rate code">
+                <select value={formData.rate_code} onChange={e => setFormData({ ...formData, rate_code: e.target.value })} required className={cn(inputClasses, 'cursor-pointer')}>
+                  <option value="">Select a rate code…</option>
+                  {rateCodes.map(rc => <option key={rc.id} value={rc.support_item_code}>{rc.support_item_code} — {rc.support_item_name}</option>)}
+                </select>
               </FormField>
-            )}
+              <FormField label={`Participants (${participantCount}) — split evenly`}>
+                <div className="flex flex-col gap-2">
+                  {formData.participants.map((clientId: string, idx: number) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <select value={clientId} onChange={e => updateParticipant(idx, e.target.value)} required className={cn(inputClasses, 'flex-1 cursor-pointer')}>
+                        <option value="">Select…</option>
+                        {clients.filter(c => !formData.participants.includes(c.id) || c.id === clientId).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                      </select>
+                      <button type="button" onClick={() => removeParticipant(idx)} className="w-7 h-7 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex items-center justify-center text-[hsl(145_15%_35%)] hover:bg-[hsl(42_26%_87%)] hover:text-destructive hover:border-destructive/40 transition-colors flex-shrink-0">
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={addParticipant} className="h-8 rounded-lg border border-dashed border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)]/50 text-[12px] text-[hsl(145_15%_35%)] flex items-center justify-center gap-1 hover:bg-[hsl(42_26%_92%)] hover:border-[hsl(34_22%_68%)] hover:text-foreground transition-colors">
+                    <Plus size={12} /> Add participant
+                  </button>
+                </div>
+              </FormField>
+            </>
+          )}
 
-            {/* Status */}
-            <FormField label="Status">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, status: 'pending' })}
-                  className={`flex-1 h-9 rounded-lg border font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-200 hover:shadow-sm ${
-                    formData.status === 'pending'
-                      ? 'border-[#b69470] bg-[#b69470/0.15] text-[#6b4d2f]' 
-                      : 'border-[hsl(37_18%_85%)] bg-transparent text-secondary hover:text-foreground'
-                  }`}
-                >
-                  <Clock size={14} /> Pending
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, status: 'confirmed' })}
-                  className={`flex-1 h-9 rounded-lg border font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-200 hover:shadow-sm ${
-                    formData.status === 'confirmed'
-                      ? 'border-[#7895aa] bg-[#7895aa/0.15] text-[#2d4a5c]' 
-                      : 'border-[hsl(37_18%_85%)] bg-transparent text-secondary hover:text-foreground'
-                  }`}
-                >
-                  <CheckCircle size={14} /> Confirmed
-                </button>
-              </div>
+          <FormField label="Date">
+            <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} required className={inputClasses} />
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-2">
+            <FormField label="Start time">
+              <input type="time" value={formData.start_time} onChange={e => setFormData({ ...formData, start_time: e.target.value })} required className={inputClasses} />
             </FormField>
-
-            {/* Notes */}
-            <FormField label="Notes (optional)">
-              <textarea 
-                value={formData.notes} 
-                onChange={e => setFormData({ ...formData, notes: e.target.value })} 
-                rows={3} 
-                placeholder="Session notes…" 
-                className="w-full min-h-[72px] px-2.5 py-2 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-[hsl(145_15%_22%)] outline-none resize-y focus:border-[hsl(130_13%_50%)] focus:ring-2 focus:ring-[hsl(130_13%_50%/0.2)] transition-all duration-200 leading-relaxed"
-              />
+            <FormField label="Duration">
+              <select
+                value={formData.duration}
+                onChange={e => {
+                  const dur = e.target.value;
+                  let end_time = formData.end_time;
+                  if (dur !== 'custom') {
+                    const [h, m] = formData.start_time.split(':').map(Number);
+                    const total = h * 60 + m + parseInt(dur);
+                    end_time = `${Math.floor(total / 60).toString().padStart(2, '0')}:${(total % 60).toString().padStart(2, '0')}`;
+                  }
+                  setFormData({ ...formData, duration: dur, end_time });
+                }}
+                className={cn(inputClasses, 'cursor-pointer')}
+              >
+                <option value="30">30 min</option>
+                <option value="60">1 hour</option>
+                <option value="90">1.5 hours</option>
+                <option value="120">2 hours</option>
+                <option value="custom">Custom</option>
+              </select>
             </FormField>
           </div>
 
-          <div className="flex gap-2 mt-5">
-            <button
-              type="submit"
-              disabled={saving || (isGroup && formData.participants.length < 2)}
-              className={`flex-1 h-9 rounded-lg border-none flex items-center justify-center gap-1.5 font-semibold cursor-pointer text-white transition-all duration-200 hover:shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isGroup && formData.participants.length < 2 ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
-              style={{ background: 'hsl(130 13% 48%)' }}
-            >
-              {saving ? 'Saving…' : panelMode === 'new' ? 'Book Session' : 'Save Changes'}
-            </button>
-            <button 
-              type="button" 
-              onClick={onClose} 
-              className="h-9 px-3.5 rounded-lg border border-[hsl(37_18%_86%)] bg-transparent text-[13px] text-[hsl(145_15%_38%)] font-medium cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-200 hover:bg-muted hover:text-foreground hover:shadow-sm active:scale-95"
-            >
-              Cancel
-            </button>
-          </div>
+          {formData.duration === 'custom' && (
+            <FormField label="End time">
+              <input type="time" value={formData.end_time} onChange={e => setFormData({ ...formData, end_time: e.target.value })} required className={inputClasses} />
+            </FormField>
+          )}
+
+          <FormField label="Status">
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, status: 'pending' })}
+                className={cn('flex-1 h-9 rounded-lg border font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all', formData.status === 'pending' ? 'border-[rgba(182,148,112,0.4)] bg-[rgba(182,148,112,0.10)] text-[#6b4d2f]' : 'border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)] hover:text-foreground')}
+              >
+                <Clock size={14} /> Pending
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, status: 'confirmed' })}
+                className={cn('flex-1 h-9 rounded-lg border font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all', formData.status === 'confirmed' ? 'border-[rgba(120,149,170,0.4)] bg-[rgba(120,149,170,0.10)] text-[#2d4a5c]' : 'border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)] hover:text-foreground')}
+              >
+                <CheckCircle size={14} /> Confirmed
+              </button>
+            </div>
+          </FormField>
+
+          <FormField label="Notes (optional)">
+            <textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} placeholder="Session notes…" className={textareaClasses} />
+          </FormField>
+
+          <PanelFooter>
+            <div className="flex gap-2">
+              <PrimaryBtn type="submit" loading={saving} loadingLabel="Saving…" disabled={isGroup && formData.participants.length < 2} className="flex-1">
+                {panelMode === 'new' ? 'Book session' : 'Save changes'}
+              </PrimaryBtn>
+              <SecondaryBtn type="button" onClick={onClose} className="flex-none px-4">
+                Cancel
+              </SecondaryBtn>
+            </div>
+          </PanelFooter>
         </form>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1060,38 +1053,66 @@ function FormPanel({ panelMode, formData, setFormData, clients, rateCodes, onClo
 
 function DeletePanel({ appt, onClose, onBack, onDelete, deleting, onToggle, collapsed }: { appt: AppointmentWithClient; onClose: () => void; onBack: () => void; onDelete: () => void; deleting: boolean; onToggle?: () => void; collapsed?: boolean }) {
   const isGroup = appt.is_group;
-  const displayName = isGroup ? `Group Session (${appt.participants?.length || 0} participants)` : appt.client?.name;
-  
+  const displayName = isGroup ? `Group Session (${appt.participants?.length || 0} participants)` : appt.client?.name ?? 'Unknown';
+  const initials = isGroup ? '' : (appt.client?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() ?? '?');
+  const formattedDate = new Date(appt.starts_at).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+  const formattedTime = formatTimeRange(new Date(appt.starts_at), new Date(appt.ends_at));
+
   return (
-    <>
-      <PanelHeader title="Cancel Session" onClose={onClose} accent="#a04040" onToggle={onToggle} collapsed={collapsed} />
-      <div className="flex-1 overflow-y-auto px-[1.1rem]">
-        <div className="px-[0.85rem] py-3 rounded-[10px] mb-[1.1rem] flex gap-[0.65rem] items-start" style={{ background: 'rgba(160,64,64,0.07)', border: '1px solid rgba(160,64,64,0.2)' }}>
+    <div className="flex flex-col h-full min-h-0 bg-card overflow-hidden">
+      <SheetHandle className="md:hidden" />
+      <div className="h-[3px] w-full flex-shrink-0" style={{ background: ACCENT.cancel }} aria-hidden />
+
+      <PanelHeader
+        breadcrumb="Schedule"
+        title="Cancel session"
+        showAccentBar={false}
+        titleColorClass="text-[#a04040]"
+        onClose={onClose}
+        onToggle={onToggle}
+        collapsed={collapsed}
+      />
+
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
+        <div className={cn('flex items-center gap-3 rounded-xl p-4 border', 'animate-in fade-in-0 zoom-in-[0.98] duration-200')} style={{ background: 'rgba(160,64,64,0.08)', borderColor: 'rgba(160,64,64,0.25)' }}>
+          <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: ACCENT.cancel }}>
+            {isGroup ? <Users size={16} color="#fff" /> : <span className="text-[13px] font-medium text-white">{initials}</span>}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-heading text-[15px] font-semibold text-foreground truncate">{displayName}</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">{formattedDate} · {formattedTime}</p>
+          </div>
+        </div>
+
+        <div>
+          <SectionLabel>Session</SectionLabel>
+          <div className="divide-y divide-primary/50">
+            <MetaRow label="Date" value={formattedDate} />
+            <MetaRow label="Time" value={formattedTime} />
+          </div>
+        </div>
+
+        <div className="rounded-lg px-3 py-2.5 flex gap-2 items-start" style={{ background: 'rgba(160,64,64,0.07)', border: '1px solid rgba(160,64,64,0.2)' }}>
           <AlertCircle size={16} color="#a04040" className="mt-0.5 flex-shrink-0" />
-          <p className="m-0 text-[13px] leading-[1.5]" style={{ color: '#7a3030' }}>
-            Cancel session with <strong>{displayName}</strong> on{' '}
-            <strong>{new Date(appt.starts_at).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' })}</strong>?{' '}
-            This cannot be undone.
+          <p className="m-0 text-[12px] leading-relaxed" style={{ color: '#7a3030' }}>
+            Cancel session with <strong>{displayName}</strong>? This cannot be undone.
           </p>
         </div>
-        <div className="flex gap-2">
-          <button 
-            onClick={onDelete} 
-            disabled={deleting} 
-            className="flex-1 h-9 rounded-lg border-none flex items-center justify-center gap-1.5 font-semibold cursor-pointer text-white transition-all duration-200 hover:shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: '#a04040' }}
-          >
-            {deleting ? 'Cancelling…' : 'Yes, Cancel'}
-          </button>
-          <button 
-            onClick={onBack} 
-            className="h-9 px-3.5 rounded-lg border border-[hsl(37_18%_86%)] bg-transparent text-[13px] text-[hsl(145_15%_38%)] font-medium cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-200 hover:bg-muted hover:text-foreground hover:shadow-sm active:scale-95"
-          >
-            Go back
-          </button>
-        </div>
+
+        <PanelFooter>
+          <div className="flex gap-2">
+            <DangerBtn type="button" onClick={onDelete} disabled={deleting} className="flex-1 hover:opacity-90" style={{ borderColor: 'rgba(160,64,64,0.4)', background: ACCENT.cancel, color: '#fff' }}>
+              {deleting ? 'Cancelling…' : 'Yes, cancel session'}
+            </DangerBtn>
+            <SecondaryBtn type="button" onClick={onBack} className="flex-none px-4">
+              Go back
+            </SecondaryBtn>
+          </div>
+        </PanelFooter>
+
+        <div className="h-2" />
       </div>
-    </>
+    </div>
   );
 }
 
@@ -1101,43 +1122,69 @@ function DeletePanel({ appt, onClose, onBack, onDelete, deleting, onToggle, coll
 
 function CompletePanel({ appt, notes, setNotes, onClose, onBack, onComplete, completing, onToggle, collapsed }: { appt: AppointmentWithClient; notes: string; setNotes: (n: string) => void; onClose: () => void; onBack: () => void; onComplete: () => void; completing: boolean; onToggle?: () => void; collapsed?: boolean }) {
   const isGroup = appt.is_group;
-  const displayName = isGroup ? `Group Session (${appt.participants?.length || 0} participants)` : appt.client?.name;
-  
+  const displayName = isGroup ? `Group Session (${appt.participants?.length || 0} participants)` : appt.client?.name ?? 'Unknown';
+  const initials = isGroup ? '' : (appt.client?.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() ?? '?');
+  const formattedDate = new Date(appt.starts_at).toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric', month: 'short' });
+  const formattedTime = formatTimeRange(new Date(appt.starts_at), new Date(appt.ends_at));
+
   return (
-    <>
-      <PanelHeader title="Complete Session" onClose={onClose} accent="#4a6640" onToggle={onToggle} collapsed={collapsed} />
-      <div className="flex-1 overflow-y-auto px-[1.1rem]">
-        <p className="m-0 mb-4 text-[13px] leading-[1.55]" style={{ color: 'hsl(145 15% 35%)' }}>
-          Mark session with <strong>{displayName}</strong> as complete and add any notes.
-        </p>
-        <FormField label="Session Notes">
-          <textarea 
-            value={notes} 
-            onChange={e => setNotes(e.target.value)} 
-            rows={4} 
-            placeholder="How did the session go?" 
-            className="w-full min-h-[96px] px-2.5 py-2 rounded-lg border border-[hsl(37_18%_85%)] bg-[hsl(40_20%_98%)] text-[13px] text-[hsl(145_15%_22%)] outline-none resize-y focus:border-[hsl(130_13%_50%)] focus:ring-2 focus:ring-[hsl(130_13%_50%/0.2)] transition-all duration-200 leading-relaxed"
-          />
-        </FormField>
-        <div className="flex gap-2 mt-4">
-          <button 
-            onClick={onComplete} 
-            disabled={completing} 
-            className="flex-1 h-9 rounded-lg border-none flex items-center justify-center gap-1.5 font-semibold cursor-pointer text-white transition-all duration-200 hover:shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ background: '#5a8a60' }}
-          >
-            <CheckCircle size={14} />
-            {completing ? 'Saving…' : 'Complete Session'}
-          </button>
-          <button 
-            onClick={onBack} 
-            className="h-9 px-3.5 rounded-lg border border-[hsl(37_18%_86%)] bg-transparent text-[13px] text-[hsl(145_15%_38%)] font-medium cursor-pointer flex items-center justify-center gap-1.5 transition-all duration-200 hover:bg-muted hover:text-foreground hover:shadow-sm active:scale-95"
-          >
-            Back
-          </button>
+    <div className="flex flex-col h-full min-h-0 bg-card overflow-hidden">
+      <SheetHandle className="md:hidden" />
+      <div className="h-[3px] w-full flex-shrink-0" style={{ background: ACCENT.complete }} aria-hidden />
+
+      <PanelHeader
+        breadcrumb="Schedule"
+        title="Complete session"
+        showAccentBar={false}
+        onClose={onClose}
+        onToggle={onToggle}
+        collapsed={collapsed}
+      />
+
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
+        <div className={cn('flex items-center gap-3 rounded-xl p-4 border', 'animate-in fade-in-0 zoom-in-[0.98] duration-200')} style={{ background: 'rgba(90,138,96,0.10)', borderColor: 'rgba(90,138,96,0.28)' }}>
+          <div className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center" style={{ background: ACCENT.complete }}>
+            {isGroup ? <Users size={16} color="#fff" /> : <span className="text-[13px] font-medium text-white">{initials}</span>}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-heading text-[15px] font-semibold text-foreground truncate">{displayName}</p>
+          </div>
         </div>
+
+        <div>
+          <SectionLabel>Session</SectionLabel>
+          <div className="divide-y divide-primary/50">
+            <MetaRow label="Date" value={formattedDate} />
+            <MetaRow label="Time" value={formattedTime} />
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-[rgba(90,138,96,0.08)] border border-[rgba(90,138,96,0.2)] px-3 py-2.5 flex items-start gap-2">
+          <CheckCircle size={14} style={{ color: '#5a8a60' }} className="mt-0.5 flex-shrink-0" />
+          <p className="text-[12px] text-[#3a5a3e] leading-relaxed m-0">
+            Completing this session makes it available to invoice. You can add notes below.
+          </p>
+        </div>
+
+        <FormField label="Session notes">
+          <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How did the session go?" minLength={0} className={cn(textareaClasses, 'min-h-[80px]')} />
+        </FormField>
+
+        <PanelFooter>
+          <div className="flex gap-2">
+            <PrimaryBtn onClick={onComplete} loading={completing} loadingLabel="Saving…" style={{ background: ACCENT.complete }} className="flex-1 hover:opacity-90">
+              <CheckCircle size={14} />
+              Complete session
+            </PrimaryBtn>
+            <SecondaryBtn type="button" onClick={onBack} className="flex-none px-4">
+              Back
+            </SecondaryBtn>
+          </div>
+        </PanelFooter>
+
+        <div className="h-2" />
       </div>
-    </>
+    </div>
   );
 }
 
