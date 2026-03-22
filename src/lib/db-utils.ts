@@ -40,7 +40,10 @@ export async function setInvoiceNumberSequence(value: number): Promise<void> {
 export async function getInvoiceNumberSequence(): Promise<number | null> {
   try {
     const result = await db.execute(sql`SELECT last_value FROM invoice_number_seq`);
-    return result.rows[0]?.last_value || null;
+    const val = result.rows[0]?.last_value;
+    if (val == null) return null;
+    const num = typeof val === 'number' ? val : Number(val);
+    return Number.isNaN(num) ? null : num;
   } catch {
     return null;
   }
@@ -64,7 +67,8 @@ export async function syncInvoiceNumberSequence(): Promise<void> {
     AND deleted_at IS NULL
   `);
   
-  const maxNumber = result.rows[0]?.max_number || 0;
+  const raw = result.rows[0]?.max_number;
+  const maxNumber = typeof raw === 'number' ? raw : (raw != null ? Number(raw) : 0) || 0;
   
   // Set sequence to max + 1 so next invoice continues correctly
   if (maxNumber > 0) {

@@ -140,7 +140,7 @@ export function AttentionList({
                   : 'rgba(182,148,112,0.12)';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.background = colors.bg;
+                e.currentTarget.style.background = severityColors.bg;
               }}
             >
               <Icon size={16} style={{ color: severityColors.icon, flexShrink: 0 }} />

@@ -90,7 +90,7 @@ export function EnhancedButton({
     fontWeight: 500,
     borderRadius: '8px',
     cursor: loading || disabled ? 'not-allowed' : 'pointer',
-    transition: animations.smooth,
+    transition: animations.smoothTransition,
     position: 'relative',
     overflow: 'hidden',
     transform: isPressed ? 'scale(0.98)' : 'scale(1)',

@@ -75,16 +75,25 @@ function formatCurrency(cents: number): string {
 export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchDashboard = async () => {
+    setError(null);
+    setLoading(true);
     try {
       const res = await fetch('/api/dashboard/summary');
-      const result = await res.json();
-      if (result.success) {
+      const result = await res.json().catch(() => ({}));
+      if (res.ok && result.success) {
         setData(result.data);
+      } else {
+        const errMsg = typeof result.error === 'string'
+          ? result.error
+          : result.error?.message || (res.status === 401 ? 'Please log in again.' : 'Failed to load dashboard');
+        setError(errMsg);
       }
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
+    } catch (err) {
+      console.error('Failed to fetch dashboard data:', err);
+      setError('Failed to load dashboard. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -104,8 +113,37 @@ export default function DashboardPage() {
     );
   }
 
-  if (!data) {
-    return null;
+  if (error || !data) {
+    return (
+      <div className="min-h-screen p-4 md:p-6 flex items-center justify-center" style={{ background: colors.page }}>
+        <div className="max-w-[1200px] w-full">
+          <div
+            className="rounded-xl p-8 text-center"
+            style={{
+              background: colors.card,
+              border: `1px solid ${colors.primary}`,
+              boxShadow: '0 4px 12px rgba(62, 44, 28, 0.08)',
+            }}
+          >
+            <h2 className="text-xl font-semibold mb-2" style={{ color: colors.heading }}>
+              Unable to Load Dashboard
+            </h2>
+            <p className="mb-6" style={{ color: colors.secondary }}>
+              {error || 'No data could be loaded.'}
+            </p>
+            <button
+              onClick={fetchDashboard}
+              className="px-6 py-2 rounded-lg font-medium text-white transition-colors hover:opacity-90"
+              style={{
+                background: `linear-gradient(135deg, ${colors.primaryBase} 0%, ${colors.primaryHover} 100%)`,
+              }}
+            >
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

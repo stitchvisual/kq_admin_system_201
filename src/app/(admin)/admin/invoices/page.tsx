@@ -676,7 +676,7 @@ export default function UnifiedInvoicesPage() {
                 background: activeTab === 'invoices' ? colors.card : 'transparent',
                 color: activeTab === 'invoices' ? colors.primaryBase : colors.secondary,
                 boxShadow: activeTab === 'invoices' ? shadows.subtle : 'none',
-                transition: animations.normal,
+                transition: animations.default,
               }}
             >
               <FileText size={15} />
@@ -689,7 +689,7 @@ export default function UnifiedInvoicesPage() {
                 background: activeTab === 'generate' ? colors.card : 'transparent',
                 color: activeTab === 'generate' ? colors.primaryBase : colors.secondary,
                 boxShadow: activeTab === 'generate' ? shadows.subtle : 'none',
-                transition: animations.normal,
+                transition: animations.default,
               }}
             >
               <Plus size={15} />
@@ -845,7 +845,7 @@ function GenerateTabContent({
   onDeselectAll: () => void;
   onTravelKmChange: (sessionId: string, km: number | null) => void;
   onGenerate: () => void;
-  formatCurrency: (amount: number) => string;
+  formatCurrency: (amount: number, inCents?: boolean) => string;
 }) {
   const totalSessions = sessionGroups.reduce((sum, g) => sum + g.sessions.length, 0);
 
@@ -1105,7 +1105,7 @@ function InvoicesTabContent({
               color: statusFilter === tab.value ? colors.primaryBase : colors.muted,
               fontWeight: statusFilter === tab.value ? 600 : 500,
               boxShadow: statusFilter === tab.value ? shadows.subtle : 'none',
-              transition: animations.normal,
+              transition: animations.default,
             }}
           >
             {tab.label}
@@ -1174,7 +1174,7 @@ function InvoicesTabContent({
           </div>
 
           {/* Invoice rows */}
-          <div className="divide-y" style={{ divideColor: 'hsl(37 18% 89%)' }}>
+          <div className="divide-y divide-[var(--divide-color)]" style={{ ['--divide-color']: 'hsl(37 18% 89%)' } as React.CSSProperties}>
             {invoices.map(invoice => {
               const overdue = isOverdue(invoice);
               return (

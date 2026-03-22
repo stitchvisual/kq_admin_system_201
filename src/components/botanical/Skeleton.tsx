@@ -19,7 +19,6 @@ function Skeleton({ className, style, ...props }: SkeletonBaseProps) {
     <div
       className={className}
       style={{
-        background: skeleton.base.background,
         borderRadius: skeleton.base.borderRadius,
         background: `linear-gradient(90deg, ${skeleton.shimmerStart} 25%, ${skeleton.shimmerMiddle} 50%, ${skeleton.shimmerEnd} 75%)`,
         backgroundSize: '200% 100%',
@@ -35,6 +34,7 @@ function Skeleton({ className, style, ...props }: SkeletonBaseProps) {
  * Skeleton for text lines
  */
 export function SkeletonText({ lines = 1, className }: { lines?: number; className?: string }) {
+  const { skeleton } = useThemeColors()
   return (
     <div className={cn('space-y-2', className)}>
       {Array.from({ length: lines }).map((_, i) => (
@@ -54,6 +54,7 @@ export function SkeletonText({ lines = 1, className }: { lines?: number; classNa
  * Skeleton for circular avatar
  */
 export function SkeletonAvatar({ className }: { className?: string }) {
+  const { skeleton } = useThemeColors()
   return <Skeleton style={skeleton.avatar} className={className} />;
 }
 
@@ -61,6 +62,7 @@ export function SkeletonAvatar({ className }: { className?: string }) {
  * Skeleton for button shape
  */
 export function SkeletonButton({ className }: { className?: string }) {
+  const { skeleton } = useThemeColors()
   return <Skeleton style={skeleton.button} className={className} />;
 }
 
@@ -68,6 +70,7 @@ export function SkeletonButton({ className }: { className?: string }) {
  * Skeleton for card placeholder
  */
 export function SkeletonCard({ className }: { className?: string }) {
+  const { skeleton } = useThemeColors()
   return <Skeleton style={skeleton.card} className={className} />;
 }
 
@@ -75,6 +78,7 @@ export function SkeletonCard({ className }: { className?: string }) {
  * Skeleton for table/list row
  */
 export function SkeletonRow({ className }: { className?: string }) {
+  const { skeleton } = useThemeColors()
   return <Skeleton style={skeleton.row} className={className} />;
 }
 
@@ -82,6 +86,7 @@ export function SkeletonRow({ className }: { className?: string }) {
  * Skeleton for table cell
  */
 export function SkeletonCell({ className, width = '100%' }: { className?: string; width?: string }) {
+  const { skeleton } = useThemeColors()
   return (
     <Skeleton
       style={{

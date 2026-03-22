@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { captureException, captureApiError } from "./sentry";
 
 export class ApiResponse {
   static success<T>(data: T, message?: string) {
@@ -35,8 +36,22 @@ export class ApiResponse {
     };
     console.error('API Error:', errorDetails);
 
-    // In development, return detailed error information
-    if (process.env.NODE_ENV === 'development') {
+    // Capture in Sentry with detailed context
+    captureException(error, {
+      tags: {
+        error_source: 'api',
+        context: context || 'unknown',
+        error_name: errorDetails.name,
+      },
+      extra: {
+        error_details: errorDetails,
+      },
+      level: 'error',
+    });
+
+    // In development or Vercel preview, return detailed error for debugging
+    const isDebugEnv = process.env.NODE_ENV === 'development' || process.env.VERCEL_ENV === 'preview';
+    if (isDebugEnv) {
       return NextResponse.json(
         {
           success: false,

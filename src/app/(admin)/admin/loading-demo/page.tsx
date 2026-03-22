@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { EnhancedButton, SuccessButton, ErrorButton } from '@/components/ui/enhanced-button';
 import {
   SkeletonDashboard,
-  SkeletonCard,
+  SkeletonGrid,
   SkeletonTable,
   SkeletonStatCard,
 } from '@/components/ui/enhanced-skeleton';
@@ -100,7 +100,7 @@ export default function LoadingDemo() {
 
             <div>
               <h3 className="font-body text-lg text-body mb-3">Card Skeleton</h3>
-              <SkeletonCard count={3} />
+              <SkeletonGrid count={3} />
             </div>
           </div>
         </section>
@@ -123,7 +123,7 @@ export default function LoadingDemo() {
                 <SkeletonTable rows={3} cols={3} />
               </div>
               <div className="loading-phase-3">
-                <SkeletonCard count={2} />
+                <SkeletonGrid count={2} />
               </div>
               <div className="loading-phase-4">
                 <SkeletonTable rows={2} cols={4} />

@@ -458,8 +458,8 @@ function DayCell({ day, year, month, start, end, min, max, selectingEnd, onClick
   const today = new Date();
   const isToday = isSameDay(current, today);
 
-  let bg = 'transparent';
-  let textColor = colors.heading;
+  let bg: string = 'transparent';
+  let textColor: string = colors.heading;
   let borderRadius = '6px';
 
   if (isStart || isEnd) {
@@ -479,7 +479,7 @@ function DayCell({ day, year, month, start, end, min, max, selectingEnd, onClick
   return (
     <button
       type="button"
-      disabled={isDisabled}
+      disabled={!!isDisabled}
       onClick={() => onClick(year, month, day)}
       className="w-8 h-8 text-xs font-medium flex items-center justify-center transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
       style={{

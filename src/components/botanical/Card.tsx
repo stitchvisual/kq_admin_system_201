@@ -22,7 +22,7 @@ export function Card({ children, style, hoverable = true, className, ...props }:
         padding: '0.85rem',
         ...(hoverable && {
           cursor: 'pointer',
-          transition: `${animations.smooth}, transform 220ms cubic-bezier(0.16, 1, 0.3, 1)`,
+          transition: `${animations.smoothTransition}, transform 220ms cubic-bezier(0.16, 1, 0.3, 1)`,
         }),
         ...style,
       }}

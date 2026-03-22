@@ -321,8 +321,8 @@ export const animations = {
   // Preset transition styles (include all properties for consistency)
   subtle: 'all 120ms cubic-bezier(0.16, 1, 0.3, 1)',
   default: 'all 200ms cubic-bezier(0.16, 1, 0.3, 1)',
-  smooth: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)',
-  slow: 'all 500ms cubic-bezier(0.16, 1, 0.3, 1)',
+  smoothTransition: 'all 300ms cubic-bezier(0.16, 1, 0.3, 1)',
+  slowTransition: 'all 500ms cubic-bezier(0.16, 1, 0.3, 1)',
   
   // Transform-only transitions (GPU accelerated)
   transformSubtle: 'transform 120ms cubic-bezier(0.16, 1, 0.3, 1)',
@@ -384,6 +384,14 @@ export const darkSkeleton = {
   shimmerMiddle: 'hsl(30 8% 28%)',
   shimmerEnd: 'hsl(30 8% 22%)',
   shimmerDuration: '1.2s',
+  // Sizes (same dimensions as light, colors come from shimmer)
+  text: { height: '1rem', width: '80%', borderRadius: '4px' },
+  textShort: { height: '1rem', width: '60%', borderRadius: '4px' },
+  button: { height: 36, width: 100, borderRadius: radii.button },
+  card: { height: 120, borderRadius: radii.card },
+  avatar: { width: 38, height: 38, borderRadius: '50%' },
+  row: { height: 52, borderRadius: radii.button },
+  cell: { width: '100%', height: 20, borderRadius: '4px' },
 } as const;
 
 // ============================================================================

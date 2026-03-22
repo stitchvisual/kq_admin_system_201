@@ -101,13 +101,8 @@ export const invoicesService = {
     });
 
     // Calculate service period (earliest start to latest end)
-    // Ensure we have Date objects
-    const servicePeriodStart = sortedSessions[0].starts_at instanceof Date
-      ? sortedSessions[0].starts_at
-      : new Date(sortedSessions[0].starts_at);
-    const servicePeriodEnd = sortedSessions[sortedSessions.length - 1].starts_at instanceof Date
-      ? sortedSessions[sortedSessions.length - 1].starts_at
-      : new Date(sortedSessions[sortedSessions.length - 1].starts_at);
+    const servicePeriodStart = new Date(sortedSessions[0].starts_at);
+    const servicePeriodEnd = new Date(sortedSessions[sortedSessions.length - 1].ends_at);
 
     let totalCents = 0;
     sortedSessions.forEach((s) => {

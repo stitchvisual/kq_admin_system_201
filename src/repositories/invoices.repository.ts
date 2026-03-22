@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { invoices, invoiceItems, appointments, clients, ndisPricing, appointmentParticipants } from '@/db/schema';
-import { eq, and, gte, lte, isNull, desc, inArray, isNotNull, count, sql } from 'drizzle-orm';
+import { eq, and, gte, lte, lt, isNull, desc, inArray, isNotNull, count, sql } from 'drizzle-orm';
 import type { Invoice, NewInvoice } from '@/db/schema/invoices';
 import type { InvoiceItem, NewInvoiceItem } from '@/db/schema/invoice_items';
 import { appointmentsRepository } from './appointments.repository';
@@ -42,6 +42,7 @@ export type UninvoicedSession = {
 export type ClientSessionGroup = {
   client_id: string;
   client_name: string;
+  is_group: boolean;
   sessions: UninvoicedSession[];
   total_sessions: number;
   total_hours: number;
@@ -492,6 +493,7 @@ export const invoicesRepository = {
             clientGroups.set(participant.client_id, {
               client_id: participant.client_id,
               client_name: participant.client_name,
+              is_group: true,
               sessions: [],
               total_sessions: 0,
               total_hours: 0,
@@ -500,6 +502,7 @@ export const invoicesRepository = {
           }
 
           const group = clientGroups.get(participant.client_id)!;
+          group.is_group = true;
           group.sessions.push(session);
           group.total_sessions++;
           group.total_hours += durationHours;
@@ -543,6 +546,7 @@ export const invoicesRepository = {
           clientGroups.set(apt.client_id, {
             client_id: apt.client_id,
             client_name: apt.client_name,
+            is_group: false,
             sessions: [],
             total_sessions: 0,
             total_hours: 0,
@@ -617,7 +621,7 @@ export const invoicesRepository = {
         and(
           eq(invoices.status, 'draft'),
           isNull(invoices.deleted_at),
-          sql`${invoices.created_at} < ${cutoffDate}`
+          lt(invoices.created_at, cutoffDate)
         )
       )
       .orderBy(desc(invoices.created_at));
