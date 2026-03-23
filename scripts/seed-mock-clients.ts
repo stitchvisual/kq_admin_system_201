@@ -2,6 +2,7 @@
  * Seed 20 mock clients for testing.
  * Run with: npx tsx scripts/seed-mock-clients.ts
  *
+ * Uses upsert — safe to re-run. Existing mock clients are updated.
  * Requires DATABASE_URL or POSTGRES_URL in .env.local
  */
 import * as dotenv from 'dotenv';
@@ -52,20 +53,36 @@ async function seed() {
     const mock = MOCK_CLIENTS[i];
     const num = i + 1;
 
-    await db.insert(clients).values({
-      name: mock.name,
-      email: `mock.client${num}@test.kqsystem.com`,
-      phone: `04${String(10000000 + num).padStart(8, '0')}`,
-      ndis_number: mock.ndis,
-      address: `${100 + num} ${mock.suburb} Street`,
-      suburb: mock.suburb,
-      // Alternate rate codes - some clients have them, some don't
-      weekday_code: i % 2 === 0 ? WEEKDAY_CODE : null,
-      saturday_code: i % 3 === 0 ? SATURDAY_CODE : null,
-      sunday_code: i % 4 === 0 ? SUNDAY_CODE : null,
-    });
+    const email = `mock.client${num}@test.kqsystem.com`;
+    await db
+      .insert(clients)
+      .values({
+        name: mock.name,
+        email,
+        phone: `04${String(10000000 + num).padStart(8, '0')}`,
+        ndis_number: mock.ndis,
+        address: `${100 + num} ${mock.suburb} Street`,
+        suburb: mock.suburb,
+        weekday_code: i % 2 === 0 ? WEEKDAY_CODE : null,
+        saturday_code: i % 3 === 0 ? SATURDAY_CODE : null,
+        sunday_code: i % 4 === 0 ? SUNDAY_CODE : null,
+      })
+      .onConflictDoUpdate({
+        target: clients.email,
+        set: {
+          name: mock.name,
+          phone: `04${String(10000000 + num).padStart(8, '0')}`,
+          ndis_number: mock.ndis,
+          address: `${100 + num} ${mock.suburb} Street`,
+          suburb: mock.suburb,
+          weekday_code: i % 2 === 0 ? WEEKDAY_CODE : null,
+          saturday_code: i % 3 === 0 ? SATURDAY_CODE : null,
+          sunday_code: i % 4 === 0 ? SUNDAY_CODE : null,
+          updated_at: new Date(),
+        },
+      });
 
-    console.log(`  ✓ ${mock.name} (mock.client${num}@test.kqsystem.com)`);
+    console.log(`  ✓ ${mock.name} (${email})`);
   }
 
   console.log(`\nDone! ${MOCK_CLIENTS.length} mock clients created.`);

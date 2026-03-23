@@ -37,6 +37,12 @@ export type UninvoicedSession = {
   rate: number;
   day_of_week: number;
   travel_km: number | null;
+  /** Present for group appointments: this client's share of the hourly NDIS rate (cents) */
+  is_group_share?: boolean;
+  /** Number of participants in the group session (equal split) */
+  group_participant_count?: number;
+  /** Full NDIS hourly rate in cents before ÷ participants */
+  full_ndis_hourly_rate_cents?: number;
 };
 
 export type ClientSessionGroup = {
@@ -48,6 +54,41 @@ export type ClientSessionGroup = {
   total_hours: number;
   estimated_total: number;
 };
+
+/** NDIS support item for session day from client weekday / Saturday / Sunday fields */
+function ndisCodeForDayOfWeek(
+  dayOfWeek: number,
+  codes: {
+    weekday_code: string | null;
+    saturday_code: string | null;
+    sunday_code: string | null;
+  },
+): string | null {
+  if (dayOfWeek === 0 && codes.sunday_code) return codes.sunday_code.trim();
+  if (dayOfWeek === 6 && codes.saturday_code) return codes.saturday_code.trim();
+  return codes.weekday_code?.trim() || null;
+}
+
+function getPriceCents(priceMap: Map<string, number>, code: string | null | undefined): number {
+  if (!code) return 0;
+  const t = code.trim();
+  if (!t) return 0;
+  const direct = priceMap.get(t);
+  if (direct !== undefined && direct > 0) return direct;
+  // Case / whitespace drift between appointment and pricing table
+  const lower = t.toLowerCase();
+  for (const [k, v] of priceMap) {
+    if (k.toLowerCase() === lower && v > 0) return v;
+  }
+  return 0;
+}
+
+/** NDIS national_price from DB (numeric / string) → cents per hour */
+function nationalPriceToCents(value: unknown): number {
+  if (value == null || value === '') return 0;
+  const n = parseFloat(String(value));
+  return Number.isFinite(n) ? Math.round(n * 100) : 0;
+}
 
 export const invoicesRepository = {
   async getNextInvoiceNumber(): Promise<string> {
@@ -384,9 +425,15 @@ export const invoicesRepository = {
         weekday_code: clients.weekday_code,
         saturday_code: clients.saturday_code,
         sunday_code: clients.sunday_code,
+        // Direct join: group (and solo override) rate_code → national price (avoids JS map / trim mismatches)
+        ndisNationalPrice: ndisPricing.national_price,
       })
       .from(appointments)
       .leftJoin(clients, eq(appointments.client_id, clients.id))
+      .leftJoin(
+        ndisPricing,
+        sql`trim(both from ${ndisPricing.support_item_code}) = trim(both from ${appointments.rate_code})`,
+      )
       .where(
         and(
           isNull(appointments.deleted_at),
@@ -431,15 +478,17 @@ export const invoicesRepository = {
     }, {} as Record<string, typeof participantsData>);
 
     // Batch fetch all NDIS prices to avoid N+1 queries
-    // Collect unique rate codes from group appointments and solo appointment client codes
-    const uniqueCodes = [...new Set([
-      // Group appointment rate codes
-      ...results.filter(r => r.is_group && r.rate_code).map(r => r.rate_code!),
-      // Solo appointment client codes (weekday, saturday, sunday)
-      ...results.filter(r => !r.is_group).flatMap(r => 
-        [r.weekday_code, r.saturday_code, r.sunday_code].filter((c): c is string => Boolean(c))
+    const rawCodes: string[] = [
+      // Group: only the NDIS item selected on the appointment (split equally at billing time)
+      ...results.filter(r => r.is_group && r.rate_code).map(r => r.rate_code!.trim()),
+      // Solo: client day codes
+      ...results.filter(r => !r.is_group).flatMap(r =>
+        [r.weekday_code, r.saturday_code, r.sunday_code]
+          .filter((c): c is string => Boolean(c))
+          .map(c => c.trim()),
       ),
-    ])];
+    ];
+    const uniqueCodes = [...new Set(rawCodes.filter(Boolean))];
 
     // Single batch query for all prices
     const priceRows = uniqueCodes.length > 0 
@@ -452,10 +501,14 @@ export const invoicesRepository = {
           .where(inArray(ndisPricing.support_item_code, uniqueCodes))
       : [];
 
-    // Build a map for O(1) lookup
-    const priceMap = new Map<string, number>(
-      priceRows.map(r => [r.support_item_code, parseFloat(r.national_price || '0') * 100])
-    );
+    // Trim keys so lookups match codes stored with accidental whitespace
+    const priceMap = new Map<string, number>();
+    for (const r of priceRows) {
+      const key = (r.support_item_code || '').trim();
+      if (key) {
+        priceMap.set(key, nationalPriceToCents(r.national_price));
+      }
+    }
 
     const clientGroups: Map<string, ClientSessionGroup> = new Map();
 
@@ -465,16 +518,19 @@ export const invoicesRepository = {
       const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
       const dayOfWeek = start.getDay();
 
-      // Handle group appointments
+      // Handle group appointments — NDIS item from appointment only; rate split equally by participant count
       if (apt.is_group && participantsByAppointment[apt.id]) {
-        // For group sessions, create a session entry for each participant
-        // Look up the NDIS price from pre-fetched map, then apply split fraction
-        const ndisRate = apt.rate_code ? (priceMap.get(apt.rate_code) ?? 0) : 0;
-        
-        for (const participant of participantsByAppointment[apt.id]) {
-          // Calculate rate: NDIS price × split fraction (e.g., $67.56 × 0.333 = $22.50)
-          const splitRate = ndisRate * parseFloat(participant.split_rate);
+        const participants = participantsByAppointment[apt.id];
+        const displayNdisCode = String(apt.rate_code ?? '').trim();
+        // Prefer SQL join price (reliable); fall back to batch map
+        const fullHourlyRateCents =
+          nationalPriceToCents(apt.ndisNationalPrice) ||
+          getPriceCents(priceMap, apt.rate_code);
+        const n = participants.length;
+        const splitRate =
+          n > 0 && fullHourlyRateCents > 0 ? fullHourlyRateCents / n : 0;
 
+        for (const participant of participants) {
           // Composite ID format: "apptId-clientId"
           // This uniquely identifies each participant in a group appointment
           // (e.g., "abc123-def456" where abc123 is the appointment ID and def456 is the client ID)
@@ -487,10 +543,13 @@ export const invoicesRepository = {
             starts_at: start,
             ends_at: end,
             duration_hours: durationHours,
-            ndis_code: apt.rate_code || '',
+            ndis_code: displayNdisCode,
             rate: splitRate,
             day_of_week: dayOfWeek,
             travel_km: apt.travel_km ? parseFloat(apt.travel_km) : null,
+            is_group_share: true,
+            group_participant_count: n,
+            full_ndis_hourly_rate_cents: fullHourlyRateCents > 0 ? fullHourlyRateCents : undefined,
           };
 
           if (!clientGroups.has(participant.client_id)) {
@@ -518,20 +577,20 @@ export const invoicesRepository = {
         let ndisCode: string | null = null;
         
         // Priority 1: Use appointment's rate_code if set (override)
-        if (apt.rate_code) {
-          ndisCode = apt.rate_code;
+        if (apt.rate_code?.trim()) {
+          ndisCode = apt.rate_code.trim();
         } else {
           // Priority 2: Fall back to client's day-specific default codes
-          if (dayOfWeek === 0 && apt.sunday_code) {
-            ndisCode = apt.sunday_code;
-          } else if (dayOfWeek === 6 && apt.saturday_code) {
-            ndisCode = apt.saturday_code;
-          } else {
-            ndisCode = apt.weekday_code;
-          }
+          ndisCode = ndisCodeForDayOfWeek(dayOfWeek, {
+            weekday_code: apt.weekday_code,
+            saturday_code: apt.saturday_code,
+            sunday_code: apt.sunday_code,
+          });
         }
 
-        const rate = ndisCode ? (priceMap.get(ndisCode) ?? 0) : 0;
+        const rate =
+          nationalPriceToCents(apt.ndisNationalPrice) ||
+          getPriceCents(priceMap, ndisCode);
 
         const session: UninvoicedSession = {
           id: apt.id,

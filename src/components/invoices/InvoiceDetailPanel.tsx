@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Send, CheckCircle, Download, XCircle, Loader2, Mail, MailCheck } from 'lucide-react';
+import { Send, CheckCircle, Download, XCircle, Loader2, Mail, MailCheck, Users } from 'lucide-react';
 import {
   SheetHandle,
   PanelHeader,
@@ -176,27 +176,66 @@ function LineItemsSection({ items, total }: { items: InvoiceItem[]; total: strin
         {items.map((item) => {
           const lineTotal = parseFloat(String(item.quantity)) * parseFloat(String(item.unit_price));
           const isTravel = item.description.toLowerCase().includes('travel');
+          const isGroupShare = item.description.includes('Group session');
+          const qty = parseFloat(String(item.quantity));
+          const unitHr = parseFloat(String(item.unit_price));
 
           return (
             <div
               key={item.id}
               className={cn(
-                'flex items-center justify-between px-3 py-[7px]',
-                'text-[12px] border-b border-primary/60 last:border-b-0',
+                'border-b border-primary/60 last:border-b-0',
                 isTravel && 'bg-soft-cream/40'
               )}
             >
-              <span className="text-foreground flex-1 min-w-0 truncate pr-2">{item.description}</span>
+              <div className="flex items-start justify-between gap-2 px-3 py-[9px] text-[12px]">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-1.5">
+                    {isGroupShare && !isTravel && (
+                      <Users
+                        size={13}
+                        className="text-[hsl(130_13%_40%)] flex-shrink-0 mt-0.5"
+                        aria-hidden
+                      />
+                    )}
+                    <p
+                      className={cn(
+                        'text-foreground leading-snug',
+                        isGroupShare ? 'text-[11px]' : 'text-[12px]'
+                      )}
+                    >
+                      {item.description}
+                    </p>
+                  </div>
+                  {!isTravel && item.ndis_item_code && (
+                    <p
+                      className={cn(
+                        'text-[10px] text-muted-foreground font-mono mt-1',
+                        isGroupShare && 'ml-[18px]'
+                      )}
+                    >
+                      NDIS item code: {item.ndis_item_code}
+                    </p>
+                  )}
+                </div>
 
-              {!isTravel && (
-                <span className="text-muted-foreground text-[11px] mr-3 whitespace-nowrap">
-                  {parseFloat(String(item.quantity)).toFixed(1)} hrs
-                </span>
-              )}
+                {!isTravel && (
+                  <div className="text-right flex-shrink-0 space-y-0.5">
+                    <p className="text-muted-foreground text-[11px] whitespace-nowrap">
+                      {qty.toFixed(1)} h × {formatCurrency(unitHr)}/h
+                    </p>
+                    <p className="font-medium text-foreground text-[12px] whitespace-nowrap">
+                      {formatCurrency(lineTotal)}
+                    </p>
+                  </div>
+                )}
 
-              <span className="font-medium text-foreground whitespace-nowrap">
-                {formatCurrency(lineTotal)}
-              </span>
+                {isTravel && (
+                  <span className="font-medium text-foreground whitespace-nowrap self-center">
+                    {formatCurrency(lineTotal)}
+                  </span>
+                )}
+              </div>
             </div>
           );
         })}

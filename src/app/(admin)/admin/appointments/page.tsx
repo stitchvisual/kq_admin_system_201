@@ -130,9 +130,14 @@ export default function AppointmentsPage() {
       const weekStartStr = formatDateForInput(weekStart);
       const res = await fetch(`/api/appointments?weekStart=${weekStartStr}`);
       const data = await res.json();
-      if (data.success) setAppointments(data.data);
+      if (data.success) {
+        setAppointments(data.data);
+      } else if (!res.ok) {
+        toast.error(data?.error?.message || `Failed to load appointments (${res.status})`);
+      }
     } catch (e) {
       console.error(e);
+      toast.error('Failed to load appointments');
     } finally {
       setLoading(false);
     }
@@ -328,7 +333,7 @@ export default function AppointmentsPage() {
           closePanel();
         }
       } else {
-        toast.error(data.message || 'Failed to save');
+        toast.error(data?.error?.message || 'Failed to save');
       }
     } catch (e) {
       toast.error('Failed to save');

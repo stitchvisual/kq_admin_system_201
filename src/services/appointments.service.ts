@@ -26,9 +26,10 @@ export const appointmentsService = {
    */
   async list(weekStart?: string): Promise<AppointmentWithClient[]> {
     let startDate: Date;
-    if (weekStart) {
+    if (weekStart && /^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
       const [y, m, d] = weekStart.split('-').map(Number);
-      startDate = new Date(y, m - 1, d);
+      const parsed = new Date(y, m - 1, d);
+      startDate = !isNaN(parsed.getTime()) ? parsed : getWeekStart(new Date());
     } else {
       startDate = getWeekStart(new Date());
     }
@@ -228,7 +229,13 @@ export const appointmentsService = {
   },
 
   async getWeekStats(weekStart?: string): Promise<{ booked: number; completed: number; remaining: number }> {
-    const startDate = weekStart ? new Date(weekStart) : getWeekStart(new Date());
+    let startDate: Date;
+    if (weekStart && /^\d{4}-\d{2}-\d{2}$/.test(weekStart)) {
+      const parsed = new Date(weekStart);
+      startDate = !isNaN(parsed.getTime()) ? parsed : getWeekStart(new Date());
+    } else {
+      startDate = getWeekStart(new Date());
+    }
     const stats = await appointmentsRepository.getWeekStats(startDate);
     return {
       ...stats,

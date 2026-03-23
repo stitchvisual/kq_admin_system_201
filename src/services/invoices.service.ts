@@ -8,6 +8,33 @@ import { db } from '@/db';
 // Travel rate per km in dollars (from env or default to NDIS rate)
 const TRAVEL_RATE_PER_KM = parseFloat(process.env.NEXT_PUBLIC_TRAVEL_RATE || '0.97');
 
+function formatAud(amountDollars: number): string {
+  return new Intl.NumberFormat('en-AU', { style: 'currency', currency: 'AUD' }).format(amountDollars);
+}
+
+/** Invoice / PDF line text for support rows — spells out group equal split when applicable */
+function buildSupportLineDescription(session: UninvoicedSession): string {
+  const datePart = `${formatDate(session.starts_at)} (${session.duration_hours.toFixed(1)} hrs)`;
+  if (session.is_group_share && session.group_participant_count && session.group_participant_count > 1) {
+    const bits: string[] = [
+      `Support — ${datePart}`,
+      `Group session (${session.group_participant_count} participants, equal split)`,
+    ];
+    if (session.ndis_code?.trim()) {
+      bits.push(`NDIS item ${session.ndis_code.trim()}`);
+    }
+    const shareHr = session.rate / 100;
+    if (session.full_ndis_hourly_rate_cents && session.full_ndis_hourly_rate_cents > 0) {
+      const fullHr = session.full_ndis_hourly_rate_cents / 100;
+      bits.push(`${formatAud(fullHr)}/hr full rate → ${formatAud(shareHr)}/hr your share`);
+    } else {
+      bits.push(`${formatAud(shareHr)}/hr your share`);
+    }
+    return bits.join(' · ');
+  }
+  return `Support — ${datePart}`;
+}
+
 export type GenerateInvoiceInput = {
   client_id: string;
   sessions: UninvoicedSession[];
@@ -120,7 +147,13 @@ export const invoicesService = {
     totalCents += travelCents;
 
     // Batch fetch NDIS pricing categories
-    const uniqueCodes = [...new Set(sortedSessions.map(s => s.ndis_code).filter((c): c is string => Boolean(c)))];
+    const uniqueCodes = [
+      ...new Set(
+        sortedSessions
+          .map(s => s.ndis_code?.trim())
+          .filter((c): c is string => Boolean(c)),
+      ),
+    ];
     const categoryMap = new Map<string, string | null>();
     
     if (uniqueCodes.length > 0) {
@@ -133,19 +166,23 @@ export const invoicesService = {
         .where(inArray(ndisPricing.support_item_code, uniqueCodes));
       
       pricingData.forEach(p => {
-        categoryMap.set(p.support_item_code, p.category);
+        const k = p.support_item_code?.trim();
+        if (k) categoryMap.set(k, p.category);
       });
     }
 
-    const items: NewInvoiceItemInput[] = sortedSessions.map((session) => ({
-      // Extract real appointment ID from composite IDs (e.g., "appt123-client456" → "appt123")
-      appointment_id: session.id.includes('-') ? session.id.split('-')[0] : session.id,
-      description: `Support - ${formatDate(session.starts_at)} (${session.duration_hours.toFixed(1)} hrs)`,
-      quantity: session.duration_hours.toFixed(2),
-      unit_price: (session.rate / 100).toFixed(2),
-      ndis_item_code: session.ndis_code,
-      support_category: session.ndis_code ? (categoryMap.get(session.ndis_code) || null) : null,
-    }));
+    const items: NewInvoiceItemInput[] = sortedSessions.map((session) => {
+      const code = session.ndis_code?.trim() || '';
+      return {
+        // Extract real appointment ID from composite IDs (e.g., "appt123-client456" → "appt123")
+        appointment_id: session.id.includes('-') ? session.id.split('-')[0] : session.id,
+        description: buildSupportLineDescription(session),
+        quantity: session.duration_hours.toFixed(2),
+        unit_price: (session.rate / 100).toFixed(2),
+        ndis_item_code: code || null,
+        support_category: code ? (categoryMap.get(code) ?? null) : null,
+      };
+    });
 
     // Add travel line item if applicable
     if (totalTravelKm > 0) {

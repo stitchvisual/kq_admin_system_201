@@ -30,6 +30,9 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.name === "UnauthorizedError") {
       return ApiResponse.error(error.message, 401);
     }
+    if (error instanceof Error && error.name === "ValidationError") {
+      return ApiResponse.error(error.message, 400, "VALIDATION_ERROR");
+    }
     return ApiResponse.unknownError(error);
   }
 }
@@ -37,8 +40,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
-    const body = await request.json();
-    const appointment = await appointmentsService.create(body);
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return ApiResponse.error("Invalid or missing JSON body", 400, "INVALID_JSON");
+    }
+    if (!body || typeof body !== "object") {
+      return ApiResponse.error("Request body must be an object", 400, "VALIDATION_ERROR");
+    }
+    const appointment = await appointmentsService.create(body as Record<string, unknown>);
     return ApiResponse.created(appointment, "Appointment created successfully");
   } catch (error) {
     if (error instanceof Error && error.name === "ValidationError") {
