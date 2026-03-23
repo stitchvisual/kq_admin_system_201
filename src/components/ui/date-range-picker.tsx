@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { colors, shadows, radii, typography } from '@/styles/botanical';
@@ -19,6 +19,8 @@ interface DateRangePickerProps {
   presets?: boolean;
   /** When true, renders only the calendar/presets (no trigger or dropdown wrapper) */
   inline?: boolean;
+  /** When 'single', selects one date (use startDate as value, one click selects and closes) */
+  mode?: 'range' | 'single';
   onClose?: () => void;
   className?: string;
 }
@@ -26,6 +28,11 @@ interface DateRangePickerProps {
 interface DatePreset {
   label: string;
   getRange: () => { start: Date; end: Date };
+}
+
+interface SingleDatePreset {
+  label: string;
+  getDate: () => Date;
 }
 
 // ============================================================================
@@ -92,6 +99,13 @@ const DATE_PRESETS: DatePreset[] = [
   },
 ];
 
+const SINGLE_DATE_PRESETS: SingleDatePreset[] = [
+  { label: 'Today', getDate: () => new Date() },
+  { label: 'In 7 days', getDate: () => { const d = new Date(); d.setDate(d.getDate() + 7); return d; } },
+  { label: 'In 14 days', getDate: () => { const d = new Date(); d.setDate(d.getDate() + 14); return d; } },
+  { label: 'In 30 days', getDate: () => { const d = new Date(); d.setDate(d.getDate() + 30); return d; } },
+];
+
 // ============================================================================
 // HELPERS
 // ============================================================================
@@ -143,17 +157,15 @@ export function DateRangePicker({
   maxDate,
   presets = true,
   inline = false,
+  mode = 'range',
   onClose,
   className,
 }: DateRangePickerProps) {
+  const isSingle = mode === 'single';
   const [isOpen, setIsOpen] = useState(inline);
   const [selectingEnd, setSelectingEnd] = useState(false);
-  const [leftMonth, setLeftMonth] = useState(() => {
-    const d = parseInputDate(startDate) || new Date();
-    return { month: d.getMonth(), year: d.getFullYear() };
-  });
-  const [rightMonth, setRightMonth] = useState(() => {
-    const d = parseInputDate(endDate) || new Date();
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = parseInputDate(startDate) || parseInputDate(endDate) || new Date();
     return { month: d.getMonth(), year: d.getFullYear() };
   });
 
@@ -175,15 +187,14 @@ export function DateRangePicker({
     return () => document.removeEventListener('mousedown', handleClick);
   }, [inline]);
 
-  // Sync right month when selecting - use startDate string to avoid infinite loop
+  // When starting to select end date, jump to start's month
+  const prevSelectingEnd = useRef(selectingEnd);
   useEffect(() => {
-    if (start && selectingEnd) {
-      const nextMonth = start.getMonth() === 11 ? 0 : start.getMonth() + 1;
-      const nextYear = start.getMonth() === 11 ? start.getFullYear() + 1 : start.getFullYear();
-      setLeftMonth({ month: start.getMonth(), year: start.getFullYear() });
-      setRightMonth({ month: nextMonth, year: nextYear });
+    if (selectingEnd && !prevSelectingEnd.current && start) {
+      setCurrentMonth({ month: start.getMonth(), year: start.getFullYear() });
     }
-  }, [selectingEnd, startDate]);
+    prevSelectingEnd.current = selectingEnd;
+  }, [selectingEnd, start]);
 
   const handlePreset = (preset: DatePreset) => {
     const { start: s, end: e } = preset.getRange();
@@ -193,10 +204,28 @@ export function DateRangePicker({
     setIsOpen(false);
   };
 
+  const handleSinglePreset = (preset: SingleDatePreset) => {
+    const d = preset.getDate();
+    const str = formatDateForInput(d);
+    onStartDateChange(str);
+    onEndDateChange(str);
+    setIsOpen(false);
+    if (inline && onClose) onClose();
+  };
+
   const handleDayClick = (year: number, month: number, day: number) => {
     const clicked = new Date(year, month, day);
     if (min && clicked < min) return;
     if (max && clicked > max) return;
+
+    if (isSingle) {
+      const str = formatDateForInput(clicked);
+      onStartDateChange(str);
+      onEndDateChange(str);
+      setIsOpen(false);
+      if (inline && onClose) onClose();
+      return;
+    }
 
     if (!selectingEnd) {
       onStartDateChange(formatDateForInput(clicked));
@@ -214,11 +243,9 @@ export function DateRangePicker({
     }
   };
 
-  const navigateMonth = (direction: 'prev' | 'next', side: 'left' | 'right') => {
-    const current = side === 'left' ? leftMonth : rightMonth;
-    let newMonth = current.month;
-    let newYear = current.year;
-    
+  const navigateMonth = (direction: 'prev' | 'next') => {
+    let newMonth = currentMonth.month;
+    let newYear = currentMonth.year;
     if (direction === 'prev') {
       newMonth = newMonth === 0 ? 11 : newMonth - 1;
       newYear = newMonth === 11 ? newYear - 1 : newYear;
@@ -226,12 +253,7 @@ export function DateRangePicker({
       newMonth = newMonth === 11 ? 0 : newMonth + 1;
       newYear = newMonth === 0 ? newYear + 1 : newYear;
     }
-    
-    if (side === 'left') {
-      setLeftMonth({ month: newMonth, year: newYear });
-    } else {
-      setRightMonth({ month: newMonth, year: newYear });
-    }
+    setCurrentMonth({ month: newMonth, year: newYear });
   };
 
   const formatDisplayDate = (dateStr: string): string => {
@@ -253,7 +275,7 @@ export function DateRangePicker({
     const clicked = new Date(year, month, day);
     const wasSelectingEnd = selectingEnd;
     handleDayClick(year, month, day);
-    if (inline && onClose && wasSelectingEnd && start && clicked >= start) onClose();
+    if (inline && onClose && (isSingle || (wasSelectingEnd && start && clicked >= start))) onClose();
   };
 
   return (
@@ -263,25 +285,23 @@ export function DateRangePicker({
           type="button"
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
-            'w-full h-9 px-3 rounded-lg border flex items-center justify-between gap-2',
+            'w-full h-10 px-3 rounded-lg border flex items-center justify-between gap-2',
             'text-sm transition-all duration-200',
-            'border-[hsl(34_22%_74%)] bg-card',
-            start ? 'text-foreground' : 'text-muted-foreground',
-            'hover:bg-[hsl(42_26%_98%)] focus:ring-2 focus:ring-primary/20 focus:border-primary'
+            'border-[var(--color-chip-border)] bg-card',
+            (isSingle ? startDate : start) ? 'text-foreground' : 'text-muted-foreground',
+            'hover:bg-[var(--color-chip-bg-hover)] focus:ring-2 focus:ring-primary/20 focus:border-primary'
           )}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 min-w-0">
             <Calendar size={16} className="text-muted-foreground shrink-0" />
-            <span>
-              {start ? (
-                end ? (
-                  `${formatDisplayDate(startDate)} — ${formatDisplayDate(endDate)}`
-                ) : (
-                  `${formatDisplayDate(startDate)} — Select end`
-                )
-              ) : (
-                'Select date range'
-              )}
+            <span className="truncate">
+              {isSingle
+                ? (startDate ? formatDisplayDate(startDate) : 'Select date')
+                : start
+                  ? end
+                    ? `${formatDisplayDate(startDate)} — ${formatDisplayDate(endDate)}`
+                    : `${formatDisplayDate(startDate)} — Select end`
+                  : 'Select date range'}
             </span>
           </div>
           <ChevronRight
@@ -295,141 +315,110 @@ export function DateRangePicker({
         <div
           className={cn(
             'overflow-hidden animate-in fade-in-0 duration-200',
-            !inline && 'absolute right-0 z-50 mt-2 rounded-xl shadow-lg border'
+            !inline && 'absolute left-0 md:left-auto md:right-0 z-50 mt-2 rounded-xl shadow-lg border'
           )}
-          style={
-            !inline
-              ? {
-                  background: colors.card,
-                  borderColor: colors.primary,
-                  boxShadow: shadows.hover,
-                  minWidth: '520px',
-                }
-              : undefined
-          }
+          style={{
+            background: colors.card,
+            borderColor: colors.primary,
+            boxShadow: shadows.hover,
+            minWidth: 'min(280px, calc(100vw - 2rem))',
+            maxWidth: '320px',
+          }}
         >
           {presets && (
             <div
-              className="flex gap-1.5 p-3 border-b"
+              className="flex flex-wrap gap-1.5 p-2.5 border-b"
               style={{ borderColor: colors.primary }}
             >
-              {DATE_PRESETS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => (inline ? handlePresetWithClose(preset) : handlePreset(preset))}
-                  className="h-7 px-2.5 rounded-md text-[11px] font-semibold transition-all duration-150 hover:scale-[1.02]"
-                  style={{
-                    background: colors.mutedBg,
-                    color: colors.secondary,
-                    border: `1px solid ${colors.primary}`,
-                  }}
-                >
-                  {preset.label}
-                </button>
-              ))}
+              {isSingle
+                ? SINGLE_DATE_PRESETS.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => handleSinglePreset(preset)}
+                      className="h-8 px-3 rounded-md text-xs font-medium transition-colors"
+                      style={{
+                        background: colors.mutedBg,
+                        color: colors.secondary,
+                        border: `1px solid ${colors.primary}`,
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  ))
+                : DATE_PRESETS.map((preset) => (
+                    <button
+                      key={preset.label}
+                      type="button"
+                      onClick={() => (inline ? handlePresetWithClose(preset) : handlePreset(preset))}
+                      className="h-8 px-3 rounded-md text-xs font-medium transition-colors"
+                      style={{
+                        background: colors.mutedBg,
+                        color: colors.secondary,
+                        border: `1px solid ${colors.primary}`,
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
             </div>
           )}
 
-          {/* Two-month calendar */}
-          <div className="flex">
-            {/* Left Month */}
-            <div className="flex-1 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <button
-                  type="button"
-                  onClick={() => navigateMonth('prev', 'left')}
-                  className="w-7 h-7 rounded-md flex items-center justify-center transition-colors duration-150"
-                  style={{ color: colors.muted }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.mutedBg)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <ChevronLeft size={16} />
-                </button>
-                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: colors.heading }}>
-                  {MONTH_NAMES[leftMonth.month]} {leftMonth.year}
-                </span>
-                <div className="w-7" /> {/* Spacer for alignment */}
-              </div>
-              <div className="grid grid-cols-7 mb-1.5">
-                {DOW_LABELS.map((l, i) => (
-                  <div key={i} className="text-center text-[10px] font-semibold py-1" style={{ color: colors.faint }}>
-                    {l}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {getMonthDays(leftMonth.year, leftMonth.month).map((d, i) => (
-                  <DayCell
-                    key={i}
-                    day={d}
-                    year={leftMonth.year}
-                    month={leftMonth.month}
-                    start={start}
-                    end={end}
-                    min={min}
-                    max={max}
-                    selectingEnd={selectingEnd}
-                    onClick={inline ? handleDayClickWithClose : handleDayClick}
-                  />
-                ))}
-              </div>
+          {/* Single month calendar */}
+          <div className="p-3">
+            <div className="flex items-center justify-between mb-3">
+              <button
+                type="button"
+                onClick={() => navigateMonth('prev')}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-muted/50"
+                style={{ color: colors.muted }}
+                aria-label="Previous month"
+              >
+                <ChevronLeft size={18} />
+              </button>
+              <span className="text-sm font-semibold" style={{ color: colors.heading }}>
+                {MONTH_NAMES[currentMonth.month]} {currentMonth.year}
+              </span>
+              <button
+                type="button"
+                onClick={() => navigateMonth('next')}
+                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-muted/50"
+                style={{ color: colors.muted }}
+                aria-label="Next month"
+              >
+                <ChevronRight size={18} />
+              </button>
             </div>
-
-            {/* Divider */}
-            <div className="w-px" style={{ background: colors.primary }} />
-
-            {/* Right Month */}
-            <div className="flex-1 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="w-7" /> {/* Spacer for alignment */}
-                <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: colors.heading }}>
-                  {MONTH_NAMES[rightMonth.month]} {rightMonth.year}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => navigateMonth('next', 'right')}
-                  className="w-7 h-7 rounded-md flex items-center justify-center transition-colors duration-150"
-                  style={{ color: colors.muted }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = colors.mutedBg)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </div>
-              <div className="grid grid-cols-7 mb-1.5">
-                {DOW_LABELS.map((l, i) => (
-                  <div key={i} className="text-center text-[10px] font-semibold py-1" style={{ color: colors.faint }}>
-                    {l}
-                  </div>
-                ))}
-              </div>
-              <div className="grid grid-cols-7 gap-1">
-                {getMonthDays(rightMonth.year, rightMonth.month).map((d, i) => (
-                  <DayCell
-                    key={i}
-                    day={d}
-                    year={rightMonth.year}
-                    month={rightMonth.month}
-                    start={start}
-                    end={end}
-                    min={min}
-                    max={max}
-                    selectingEnd={selectingEnd}
-                    onClick={inline ? handleDayClickWithClose : handleDayClick}
-                  />
-                ))}
-              </div>
+            <div className="grid grid-cols-7 gap-x-1 gap-y-1">
+              {DOW_LABELS.map((l, i) => (
+                <div key={i} className="text-center text-xs font-medium py-1" style={{ color: colors.faint }}>
+                  {l}
+                </div>
+              ))}
+              {getMonthDays(currentMonth.year, currentMonth.month).map((d, i) => (
+                <DayCell
+                  key={i}
+                  day={d}
+                  year={currentMonth.year}
+                  month={currentMonth.month}
+                  start={start}
+                  end={isSingle ? start : end}
+                  min={min}
+                  max={max}
+                  selectingEnd={isSingle ? false : selectingEnd}
+                  onClick={inline ? handleDayClickWithClose : handleDayClick}
+                />
+              ))}
             </div>
           </div>
 
-          {/* Footer with clear button */}
+          {/* Footer */}
           <div
             className="flex items-center justify-between px-3 py-2.5 border-t"
             style={{ borderColor: colors.primary, background: colors.mutedBg }}
           >
-            <span className="text-[11px]" style={{ color: colors.muted }}>
-              {selectingEnd ? 'Click to select end date' : 'Click to select start date'}
+            <span className="text-xs" style={{ color: colors.muted }}>
+              {isSingle ? 'Select date' : selectingEnd ? 'Select end date' : 'Select start date'}
             </span>
             <button
               type="button"
@@ -439,10 +428,8 @@ export function DateRangePicker({
                 setSelectingEnd(false);
                 if (inline && onClose) onClose();
               }}
-              className="text-[11px] font-semibold px-2.5 py-1 rounded-md transition-colors duration-150"
+              className="text-xs font-medium px-3 py-1.5 rounded-md transition-colors"
               style={{ color: colors.secondary }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = colors.card)}
-              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               Clear
             </button>
@@ -470,7 +457,7 @@ interface DayCellProps {
 }
 
 function DayCell({ day, year, month, start, end, min, max, selectingEnd, onClick }: DayCellProps) {
-  if (day === null) return <div className="w-8 h-8" />;
+  if (day === null) return <div className="w-8 h-8 sm:w-9 sm:h-9" />;
 
   const current = new Date(year, month, day);
   const isStart = start && isSameDay(current, start);
@@ -503,7 +490,7 @@ function DayCell({ day, year, month, start, end, min, max, selectingEnd, onClick
       type="button"
       disabled={!!isDisabled}
       onClick={() => onClick(year, month, day)}
-      className="w-8 h-8 text-xs font-medium flex items-center justify-center transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+      className="w-8 h-8 sm:w-9 sm:h-9 text-sm font-medium flex items-center justify-center rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       style={{
         background: bg,
         color: textColor,

@@ -21,10 +21,18 @@ type UpdateAppointmentInput = Partial<CreateAppointmentInput>;
 export const appointmentsService = {
   /**
    * List all appointments for a given week
+   * Uses 24h buffer on each side to avoid missing appointments near week boundaries
+   * due to timezone differences (e.g. Monday 9am Sydney = Sunday evening UTC)
    */
   async list(weekStart?: string): Promise<AppointmentWithClient[]> {
-    const startDate = weekStart ? new Date(weekStart) : getWeekStart(new Date());
-    return appointmentsRepository.findByWeek(startDate);
+    let startDate: Date;
+    if (weekStart) {
+      const [y, m, d] = weekStart.split('-').map(Number);
+      startDate = new Date(y, m - 1, d);
+    } else {
+      startDate = getWeekStart(new Date());
+    }
+    return appointmentsRepository.findByWeek(startDate, { bufferHours: 24 });
   },
 
   async getTodaysAppointments(): Promise<AppointmentWithClient[]> {

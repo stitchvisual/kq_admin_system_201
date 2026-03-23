@@ -89,9 +89,9 @@ export function GenerateDateRangeSelector({
         </button>
       </div>
 
-      {/* Calendar popover */}
+      {/* Calendar popover - compact width, doesn't stretch full container */}
       {pickerOpen && (
-        <div className="rounded-xl border border-[hsl(34_22%_74%)] bg-card shadow-lg overflow-hidden">
+        <div className="w-max max-w-full rounded-xl border border-[hsl(34_22%_74%)] bg-card shadow-lg overflow-hidden">
           <DateRangePicker
             startDate={startDate}
             endDate={endDate}

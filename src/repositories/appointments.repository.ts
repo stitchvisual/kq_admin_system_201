@@ -42,10 +42,15 @@ function getWeekEnd(weekStart: Date): Date {
 export const appointmentsRepository = {
   /**
    * Find all appointments for a given week, with client data and participants
+   * @param bufferHours - Optional hours to extend the range on each side (default 0).
+   *   Use 24 to avoid missing appointments near week boundaries in other timezones.
    */
-  async findByWeek(weekStart: Date): Promise<AppointmentWithClient[]> {
+  async findByWeek(weekStart: Date, options?: { bufferHours?: number }): Promise<AppointmentWithClient[]> {
+    const bufferMs = (options?.bufferHours ?? 0) * 60 * 60 * 1000;
+    const queryStart = new Date(weekStart.getTime() - bufferMs);
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 7);
+    const queryEnd = new Date(weekEnd.getTime() + bufferMs);
 
     const results = await db
       .select({
@@ -73,8 +78,8 @@ export const appointmentsRepository = {
       .leftJoin(clients, eq(appointments.client_id, clients.id))
       .where(
         and(
-          gte(appointments.starts_at, weekStart),
-          lt(appointments.starts_at, weekEnd),
+          gte(appointments.starts_at, queryStart),
+          lt(appointments.starts_at, queryEnd),
           isNull(appointments.deleted_at)
         )
       )
