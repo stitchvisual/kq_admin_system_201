@@ -3,7 +3,7 @@ import { NotFoundError, ValidationError } from '@/lib/errors';
 import { getWeekStart } from '@/lib/date-utils';
 import type { NewAppointment, NewAppointmentParticipant } from '@/db/schema';
 
-type CreateAppointmentInput = {
+export type CreateAppointmentInput = {
   client_id?: string;  // Optional for group appointments
   starts_at: string;  // ISO string
   ends_at: string;    // ISO string

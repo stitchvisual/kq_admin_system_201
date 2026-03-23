@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { ApiResponse } from "@/lib/responses";
-import { appointmentsService } from "@/services/appointments.service";
+import { appointmentsService, type CreateAppointmentInput } from "@/services/appointments.service";
 import { requireAdmin } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     if (!body || typeof body !== "object") {
       return ApiResponse.error("Request body must be an object", 400, "VALIDATION_ERROR");
     }
-    const appointment = await appointmentsService.create(body as Record<string, unknown>);
+    const appointment = await appointmentsService.create(body as CreateAppointmentInput);
     return ApiResponse.created(appointment, "Appointment created successfully");
   } catch (error) {
     if (error instanceof Error && error.name === "ValidationError") {
