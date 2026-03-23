@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { fadeUp, dropdownMenu } from '@/lib/motion/variants';
 import {
   Download,
   Send,
@@ -76,12 +78,13 @@ export function InvoiceRow({
   const item_count = invoice.items?.length ?? 0;
 
   return (
-    <div
+    <motion.div
       className={cn(
         'grid grid-cols-[40px_120px_1fr_100px_100px_120px_100px_140px] gap-4 px-4 py-[0.85rem]',
-        'border-b border-primary/80 items-center transition-all cursor-pointer',
-        'hover:bg-primary/5'
+        'border-b border-primary/80 items-center cursor-pointer'
       )}
+      variants={fadeUp}
+      whileHover={{ backgroundColor: 'hsl(130 13% 50% / 0.04)' }}
       style={{ background: selected ? 'hsl(130 13% 50% / 0.05)' : undefined }}
       onClick={onClick}
     >
@@ -206,40 +209,50 @@ export function InvoiceRow({
           <MoreHorizontal size={14} />
         </button>
 
-        {showOverflow && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={() => setShowOverflow(false)}
-            />
-            <div className="absolute right-0 top-full mt-1 bg-[hsl(var(--color-card))] border border-primary rounded-lg shadow-lg z-20 min-w-[140px] overflow-hidden">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowOverflow(false);
-                  onClick();
-                }}
-                className="w-full py-2.5 px-3.5 bg-[hsl(42_26%_92%)] text-[12.5px] text-foreground text-left flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)] transition-colors"
+        <AnimatePresence>
+          {showOverflow && (
+            <>
+              <div
+                key="overflow-backdrop"
+                className="fixed inset-0 z-10"
+                onClick={() => setShowOverflow(false)}
+              />
+              <motion.div
+                key="overflow-menu"
+                className="absolute right-0 top-full mt-1 bg-[hsl(var(--color-card))] border border-primary rounded-lg shadow-lg z-20 min-w-[140px] overflow-hidden"
+                variants={dropdownMenu}
+                initial="hidden"
+                animate="visible"
+                exit="exit"
               >
-                <Eye size={13} /> View Details
-              </button>
-              {invoice.status !== 'paid' && invoice.status !== 'cancelled' && onCancel && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     setShowOverflow(false);
-                    onCancel();
+                    onClick();
                   }}
-                  className="w-full py-2.5 px-3.5 bg-[hsl(42_26%_92%)] text-red-600 text-left flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)] transition-colors"
+                  className="w-full py-2.5 px-3.5 bg-[hsl(42_26%_92%)] text-[12.5px] text-foreground text-left flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)] transition-colors"
                 >
-                  <XCircle size={13} /> Cancel
+                  <Eye size={13} /> View Details
                 </button>
-              )}
-            </div>
-          </>
-        )}
+                {invoice.status !== 'paid' && invoice.status !== 'cancelled' && onCancel && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowOverflow(false);
+                      onCancel();
+                    }}
+                    className="w-full py-2.5 px-3.5 bg-[hsl(42_26%_92%)] text-red-600 text-left flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)] transition-colors"
+                  >
+                    <XCircle size={13} /> Cancel
+                  </button>
+                )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

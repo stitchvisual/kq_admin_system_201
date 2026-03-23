@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { LayoutDashboard, Calendar, Users, FileText, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Toaster } from "@/components/ui/sonner";
 import { SentryErrorBoundary } from "@/components/sentry/SentryErrorBoundary";
+import { AdminSidebarNav } from "@/app/(admin)/admin/_components/AdminSidebarNav";
 import { colors, shadows, radii, typography } from "@/styles/botanical";
 
 const navItems = [
@@ -52,31 +52,7 @@ export default async function AdminLayout({
             </div>
           </div>
 
-          {/* Navigation */}
-          <nav className="flex-1 flex flex-col items-center gap-2">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="sidebar-nav-link group relative w-10 h-10 rounded-xl flex items-center justify-center"
-                title={item.label}
-              >
-                <item.icon className="h-[18px] w-[18px]" />
-                {/* Tooltip */}
-                <span
-                  className="absolute left-full ml-3 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none"
-                  style={{
-                    background: colors.heading,
-                    color: colors.card,
-                    boxShadow: shadows.elevated,
-                    fontFamily: typography.body,
-                  }}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            ))}
-          </nav>
+          <AdminSidebarNav />
 
           {/* User section at bottom */}
           <div className="flex flex-col items-center gap-3 mt-auto">

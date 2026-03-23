@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { staggerContainerFast } from '@/lib/motion/variants';
 import {
   FileText,
   Download,
@@ -653,6 +655,7 @@ export default function UnifiedInvoicesPage() {
               icon={<FileText size={18} />}
               label="Outstanding"
               value={summaryStats ? formatCurrency(summaryStats.outstanding.total, true) : '$0.00'}
+              valueCents={summaryStats?.outstanding.total ?? 0}
               subtext={summaryStats?.outstanding.count ? `${summaryStats.outstanding.count} invoice${summaryStats.outstanding.count !== 1 ? 's' : ''}` : 'None'}
               color="var(--status-confirmed-dot)"
               bg="var(--status-confirmed-bg)"
@@ -664,6 +667,7 @@ export default function UnifiedInvoicesPage() {
               icon={<AlertTriangle size={18} />}
               label="Overdue"
               value={summaryStats ? formatCurrency(summaryStats.overdue.total, true) : '$0.00'}
+              valueCents={summaryStats?.overdue.total ?? 0}
               subtext={summaryStats?.overdue.count ? `${summaryStats.overdue.count} invoice${summaryStats.overdue.count !== 1 ? 's' : ''}` : 'None'}
               color="var(--status-overdue-dot)"
               bg="var(--status-overdue-bg)"
@@ -676,6 +680,7 @@ export default function UnifiedInvoicesPage() {
               icon={<CheckCircle size={18} />}
               label="Paid This Month"
               value={summaryStats ? formatCurrency(summaryStats.paid_this_month.total, true) : '$0.00'}
+              valueCents={summaryStats?.paid_this_month.total ?? 0}
               subtext={summaryStats?.paid_this_month.count ? `${summaryStats.paid_this_month.count} invoice${summaryStats.paid_this_month.count !== 1 ? 's' : ''}` : 'None'}
               color="var(--status-completed-dot)"
               bg="var(--status-completed-bg)"
@@ -687,6 +692,7 @@ export default function UnifiedInvoicesPage() {
               icon={<Pencil size={18} />}
               label="Draft"
               value={summaryStats ? formatCurrency(summaryStats.draft.total, true) : '$0.00'}
+              valueCents={summaryStats?.draft.total ?? 0}
               subtext={summaryStats?.draft.count ? `${summaryStats.draft.count} invoice${summaryStats.draft.count !== 1 ? 's' : ''}` : 'None'}
               color="var(--status-pending-dot)"
               bg="var(--status-pending-bg)"
@@ -831,20 +837,23 @@ export default function UnifiedInvoicesPage() {
                 : 'max-md:translate-x-0 max-md:opacity-100 md:translate-x-4 md:opacity-0'
             )}
           >
-            {panelMode === 'view' && selectedInvoice && (
-              <InvoiceDetailPanel
-                invoice={selectedInvoice}
-                onClose={closePanel}
-                onCancel={() => handleCancel(selectedInvoice.id)}
-                onIssue={() => handleIssue(selectedInvoice.id)}
-                onMarkPaid={() => handleMarkPaid(selectedInvoice.id)}
-                onDownload={() => handleDownloadPdf(selectedInvoice.invoice_number, selectedInvoice.id)}
-                onSendEmail={() => handleSendEmail(selectedInvoice.id)}
-                actionLoading={actionLoading}
-                pdfLoading={pdfLoading === selectedInvoice.id}
-                emailLoading={emailLoading === selectedInvoice.id}
-              />
-            )}
+            <AnimatePresence mode="wait">
+              {panelMode === 'view' && selectedInvoice && (
+                <InvoiceDetailPanel
+                  key={selectedInvoice.id}
+                  invoice={selectedInvoice}
+                  onClose={closePanel}
+                  onCancel={() => handleCancel(selectedInvoice.id)}
+                  onIssue={() => handleIssue(selectedInvoice.id)}
+                  onMarkPaid={() => handleMarkPaid(selectedInvoice.id)}
+                  onDownload={() => handleDownloadPdf(selectedInvoice.invoice_number, selectedInvoice.id)}
+                  onSendEmail={() => handleSendEmail(selectedInvoice.id)}
+                  actionLoading={actionLoading}
+                  pdfLoading={pdfLoading === selectedInvoice.id}
+                  emailLoading={emailLoading === selectedInvoice.id}
+                />
+              )}
+            </AnimatePresence>
           </div>
         </aside>
       </div>
@@ -1065,20 +1074,28 @@ function InvoicesTabContent({
 }) {
   return (
     <>
-      {/* Status Tabs */}
-      <div className="mb-5 flex items-center gap-0.5 p-1 rounded-lg bg-mutedBg border border-[hsl(34_22%_74%)]">
+      {/* Status Tabs — sliding indicator via shared layoutId */}
+      <div className="mb-5 flex items-center gap-1 p-1 rounded-lg bg-mutedBg border border-[hsl(34_22%_74%)] relative">
         {statusTabs.map(tab => (
           <button
             key={tab.value}
+            type="button"
             onClick={() => setStatusFilter(tab.value)}
             className={cn(
-              'h-8 px-3.5 rounded-md text-sm transition-all cursor-pointer',
+              'relative h-8 px-3.5 rounded-md text-sm font-medium cursor-pointer',
               statusFilter === tab.value
-                ? 'bg-card text-foreground font-semibold shadow-sm'
-                : 'bg-transparent text-muted-foreground hover:text-foreground'
+                ? 'text-foreground font-semibold'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
-            {tab.label}
+            {statusFilter === tab.value && (
+              <motion.span
+                layoutId="invoice-status-tab-indicator"
+                className="absolute inset-0 rounded-md bg-card border border-primary/30 shadow-sm"
+                transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+              />
+            )}
+            <span className="relative z-10">{tab.label}</span>
           </button>
         ))}
       </div>
@@ -1155,7 +1172,13 @@ function InvoicesTabContent({
           </div>
 
           {/* Invoice rows */}
-          <div className="divide-y divide-[var(--divide-color)]" style={{ ['--divide-color']: 'hsl(37 18% 89%)' } as React.CSSProperties}>
+          <motion.div
+            className="divide-y divide-[var(--divide-color)]"
+            style={{ ['--divide-color']: 'hsl(37 18% 89%)' } as React.CSSProperties}
+            variants={staggerContainerFast}
+            initial="hidden"
+            animate="visible"
+          >
             {invoices.map(invoice => (
               <InvoiceRowComponent
                 key={invoice.id}
@@ -1170,7 +1193,7 @@ function InvoicesTabContent({
                 actionLoading={actionLoading}
               />
             ))}
-          </div>
+          </motion.div>
         </div>
       )}
 

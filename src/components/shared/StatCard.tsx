@@ -1,12 +1,44 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useMotionValueEvent,
+} from 'framer-motion';
 import { colors, radii, typography, shadows } from '@/styles/botanical';
+
+function formatAudFromCents(cents: number): string {
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+  }).format(cents / 100);
+}
+
+/** Counts up from 0 to `cents` on mount / when `cents` changes */
+function AnimatedCentsValue({ cents }: { cents: number }) {
+  const motionVal = useMotionValue(0);
+  const spring = useSpring(motionVal, { stiffness: 80, damping: 20 });
+  const [display, setDisplay] = useState(() => formatAudFromCents(0));
+
+  useEffect(() => {
+    motionVal.set(cents);
+  }, [cents, motionVal]);
+
+  useMotionValueEvent(spring, 'change', (latest) => {
+    setDisplay(formatAudFromCents(Math.round(latest)));
+  });
+
+  return <>{display}</>;
+}
 
 export interface StatCardProps {
   icon: React.ReactNode;
   label: string;
   value: string | number;
+  /** Amount in cents — when set, the value animates from 0 with a spring (use with formatted `value` as fallback for SSR) */
+  valueCents?: number;
   subtext?: string;
   color: string;
   bg: string;
@@ -22,6 +54,7 @@ export function StatCard({
   icon,
   label,
   value,
+  valueCents,
   subtext,
   color,
   bg,
@@ -32,6 +65,8 @@ export function StatCard({
   href,
   className = '',
 }: StatCardProps) {
+  const interactive = !!(onClick || href);
+
   const cardStyle: React.CSSProperties = {
     padding: '1rem 1.25rem',
     borderRadius: radii.card,
@@ -41,12 +76,31 @@ export function StatCard({
     flexDirection: 'column',
     gap: '0.5rem',
     position: 'relative',
-    boxShadow: highlight ? `0 0 0 2px ${color}40` : `inset 0 1px 0 rgba(255,255,255,0.7), ${shadows.subtle}`,
-    transition: 'all 150ms cubic-bezier(0.16, 1, 0.3, 1)',
-    cursor: onClick || href ? 'pointer' : 'default',
+    boxShadow: highlight
+      ? `0 0 0 2px ${color}40`
+      : `inset 0 1px 0 rgba(255,255,255,0.7), ${shadows.subtle}`,
+    cursor: interactive ? 'pointer' : 'default',
     opacity: isZero ? 0.75 : 1,
     textDecoration: 'none',
   };
+
+  const hoverAnimation =
+    interactive
+      ? {
+          y: -2,
+          scale: 1.02,
+          boxShadow: highlight
+            ? `0 0 0 2px ${color}50, 0 4px 16px -2px rgba(62,44,28,0.13)`
+            : `inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px -2px rgba(62,44,28,0.13)`,
+        }
+      : undefined;
+
+  const valueNode =
+    valueCents !== undefined ? (
+      <AnimatedCentsValue cents={valueCents} />
+    ) : (
+      value
+    );
 
   const content = (
     <>
@@ -76,7 +130,7 @@ export function StatCard({
             lineHeight: 1.15,
           }}
         >
-          {value}
+          {valueNode}
         </div>
         {subtext && (
           <div
@@ -93,51 +147,34 @@ export function StatCard({
     </>
   );
 
-  // Add hover effects via inline handlers
-  const handleMouseEnter = (e: React.MouseEvent<HTMLElement>) => {
-    if (onClick || href) {
-      const el = e.currentTarget as HTMLElement;
-      el.style.boxShadow = highlight 
-        ? `0 0 0 2px ${color}50, 0 4px 16px -2px rgba(62,44,28,0.13)` 
-        : `inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px -2px rgba(62,44,28,0.13), 0 8px 24px -4px rgba(62,44,28,0.08)`;
-      el.style.transform = 'translateY(-2px) scale(1.02)';
-    }
-  };
-
-  const handleMouseLeave = (e: React.MouseEvent<HTMLElement>) => {
-    const el = e.currentTarget as HTMLElement;
-    el.style.boxShadow = highlight 
-      ? `0 0 0 2px ${color}40` 
-      : isZero 
-        ? 'none' 
-        : `inset 0 1px 0 rgba(255,255,255,0.7), ${shadows.subtle}`;
-    el.style.transform = 'translateY(0) scale(1)';
-  };
+  const motionTransition = { type: 'spring' as const, stiffness: 300, damping: 28 };
 
   if (href) {
     return (
-      <a 
-        href={href} 
+      <motion.a
+        href={href}
         className={className}
         style={cardStyle}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        whileHover={hoverAnimation}
+        whileTap={interactive ? { scale: 0.99 } : undefined}
+        transition={motionTransition}
       >
         {content}
-      </a>
+      </motion.a>
     );
   }
 
   return (
-    <div 
+    <motion.div
       className={className}
       style={cardStyle}
       onClick={onClick}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      whileHover={hoverAnimation}
+      whileTap={interactive ? { scale: 0.99 } : undefined}
+      transition={motionTransition}
     >
       {content}
-    </div>
+    </motion.div>
   );
 }
 

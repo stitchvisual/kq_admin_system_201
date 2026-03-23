@@ -1,7 +1,10 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { colors, radii, typography, shadows } from '@/styles/botanical';
+
+const pageHeaderEase: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 export interface PageHeaderProps {
   icon?: React.ReactNode;
@@ -13,8 +16,11 @@ export interface PageHeaderProps {
 
 export function PageHeader({ icon, title, subtitle, action, className = '' }: PageHeaderProps) {
   return (
-    <header
+    <motion.header
       className={className}
+      initial={{ y: -8, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.2, ease: pageHeaderEase }}
       style={{
         background: colors.page,
         borderBottom: `1px solid ${colors.primary}`,
@@ -80,7 +86,7 @@ export function PageHeader({ icon, title, subtitle, action, className = '' }: Pa
         </div>
       </div>
       {action}
-    </header>
+    </motion.header>
   );
 }
 

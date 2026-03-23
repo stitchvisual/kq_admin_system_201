@@ -1,7 +1,9 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Send, CheckCircle, Download, XCircle, Loader2, Mail, MailCheck, Users } from 'lucide-react';
+import { slideInRight, fadeUp, staggerContainer } from '@/lib/motion/variants';
 import {
   SheetHandle,
   PanelHeader,
@@ -74,8 +76,7 @@ function HeroCard({
     <div
       className={cn(
         'rounded-xl p-4 border',
-        'bg-[rgba(196,168,130,0.10)] border-[rgba(196,168,130,0.28)]',
-        'animate-in fade-in-0 zoom-in-[0.98] duration-200'
+        'bg-[rgba(196,168,130,0.10)] border-[rgba(196,168,130,0.28)]'
       )}
     >
       <div className="flex items-start justify-between mb-2">
@@ -445,7 +446,13 @@ export function InvoiceDetailPanel({
   const notesTrimmed = invoice.notes?.trim();
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-card overflow-hidden">
+    <motion.div
+      className="flex flex-col h-full min-h-0 bg-card overflow-hidden"
+      variants={slideInRight}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+    >
       <SheetHandle className="md:hidden" />
 
       <div className="h-[3px] w-full bg-[var(--panel-accent-invoice)] flex-shrink-0" aria-hidden />
@@ -458,14 +465,37 @@ export function InvoiceDetailPanel({
       />
 
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
-        <HeroCard invoice={invoice} overdue={!!overdue} daysOverdue={daysOverdue} />
-        <div className="animate-in fade-in-0 duration-300 delay-100 space-y-4">
-          <DatesSection invoice={invoice} overdue={!!overdue} />
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          animate="visible"
+          transition={{ delay: 0.05 }}
+        >
+          <HeroCard invoice={invoice} overdue={!!overdue} daysOverdue={daysOverdue} />
+        </motion.div>
+
+        <motion.div
+          className="space-y-4"
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div variants={fadeUp}>
+            <DatesSection invoice={invoice} overdue={!!overdue} />
+          </motion.div>
+
           {invoice.items && invoice.items.length > 0 && (
-            <LineItemsSection items={invoice.items} total={String(invoice.total)} />
+            <motion.div variants={fadeUp}>
+              <LineItemsSection items={invoice.items} total={String(invoice.total)} />
+            </motion.div>
           )}
-          {notesTrimmed ? <NotesSection notes={notesTrimmed} /> : null}
-        </div>
+
+          {notesTrimmed && (
+            <motion.div variants={fadeUp}>
+              <NotesSection notes={notesTrimmed} />
+            </motion.div>
+          )}
+        </motion.div>
         <div className="h-2" />
       </div>
 
@@ -480,7 +510,7 @@ export function InvoiceDetailPanel({
         pdfLoading={pdfLoading}
         emailLoading={emailLoading}
       />
-    </div>
+    </motion.div>
   );
 }
 

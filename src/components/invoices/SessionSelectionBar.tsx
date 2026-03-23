@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Send, Download, CheckSquare, Square, Loader2, Users, Clock } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Send, CheckSquare, Square, Loader2, Users, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SessionSelectionBarProps {
@@ -32,13 +33,15 @@ export function SessionSelectionBar({
   const hasSelection = selectedCount > 0;
 
   return (
-    <div
-      className={cn(
-        'sticky bottom-0 left-0 right-0 z-10',
-        'border-t border-primary bg-card/95 backdrop-blur-sm',
-        'transition-all duration-200',
-        hasSelection ? 'shadow-lg' : ''
-      )}
+    <motion.div
+      className="sticky bottom-0 left-0 right-0 z-10 border-t border-primary bg-card/95 backdrop-blur-sm"
+      initial={{ y: 64, opacity: 0 }}
+      animate={{
+        y: hasSelection ? 0 : 64,
+        opacity: hasSelection ? 1 : 0,
+      }}
+      transition={{ type: 'spring', stiffness: 350, damping: 32 }}
+      style={{ pointerEvents: hasSelection ? 'auto' : 'none' }}
     >
       <div className="flex items-center justify-between px-5 py-3">
         <div className="flex items-center gap-4">
@@ -127,7 +130,7 @@ export function SessionSelectionBar({
           </button>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 

@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, CheckCircle, Download, Loader2, FileText } from 'lucide-react';
+import { backdropVariant, scaleIn } from '@/lib/motion/variants';
 import { cn } from '@/lib/utils';
 import type { InvoiceWithClient } from '@/repositories/invoices.repository';
 import InvoiceStatusBadge, { type InvoiceStatus } from './InvoiceStatusBadge';
@@ -45,7 +47,9 @@ export function BulkActionModal({
 }: BulkActionModalProps) {
   const [downloadAfter, setDownloadAfter] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (!isOpen) setDownloadAfter(false);
+  }, [isOpen]);
 
   const total = invoices.reduce((sum, inv) => sum + parseFloat(inv.total), 0);
 
@@ -63,19 +67,32 @@ export function BulkActionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      <div
-        className={cn(
-          'relative bg-card border border-primary rounded-xl shadow-xl',
-          'w-full max-w-md mx-4 overflow-hidden',
-          'animate-in fade-in-0 zoom-in-95 duration-200'
-        )}
-      >
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            key="bulk-modal-backdrop"
+            className="fixed inset-0 z-50 backdrop-blur-sm"
+            variants={backdropVariant}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            style={{ backgroundColor: 'rgba(0,0,0,0.45)' }}
+            onClick={onClose}
+            aria-hidden
+          />
+          <motion.div
+            key="bulk-modal-panel"
+            className={cn(
+              'fixed left-1/2 top-1/2 z-[51] w-[min(100%-2rem,28rem)] -translate-x-1/2 -translate-y-1/2',
+              'rounded-xl shadow-xl bg-card border border-primary overflow-hidden'
+            )}
+            variants={scaleIn}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            onClick={(e) => e.stopPropagation()}
+          >
         <div className="flex items-center justify-between px-5 py-4 border-b border-primary">
           <h2 className="font-heading text-base font-semibold text-foreground m-0">
             {title}
@@ -167,8 +184,10 @@ export function BulkActionModal({
             {loading ? 'Processing...' : confirmLabel}
           </button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 

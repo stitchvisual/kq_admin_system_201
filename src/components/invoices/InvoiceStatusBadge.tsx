@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, FileText, Send, CheckCircle, XCircle } from 'lucide-react';
 import { invoiceStatus } from '@/styles/botanical';
 import { StatusBadge, type StatusConfig } from '@/components/ui/status-badge';
@@ -91,16 +92,28 @@ export function InvoiceStatusBadge({
   }
 
   const displayStatus = overdue ? 'overdue' : status;
+  const animationKey = `${status}-${overdue ? 'overdue' : 'current'}`;
 
   return (
-    <StatusBadge
-      label={displayStatus}
-      config={config satisfies StatusConfig}
-      icon={showIcon ? <Icon size={iconSizes[size]} /> : undefined}
-      size={badgeSize}
-      suffix={showSubtext && subtext ? `· ${subtext}` : undefined}
-      className={className}
-    />
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={animationKey}
+        className="inline-flex"
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.85 }}
+        transition={{ duration: 0.15 }}
+      >
+        <StatusBadge
+          label={displayStatus}
+          config={config satisfies StatusConfig}
+          icon={showIcon ? <Icon size={iconSizes[size]} /> : undefined}
+          size={badgeSize}
+          suffix={showSubtext && subtext ? `· ${subtext}` : undefined}
+          className={className}
+        />
+      </motion.span>
+    </AnimatePresence>
   );
 }
 
@@ -132,14 +145,27 @@ export function InvoiceStatusBadgeCompact({
             ? 'PAID'
             : status;
 
+  const compactKey = `${status}-${overdue ? 'od' : 'ok'}-${displayText}`;
+
   return (
-    <StatusBadge
-      label={displayText}
-      config={config satisfies StatusConfig}
-      icon={<Icon size={9} />}
-      size="xs"
-      className={`uppercase gap-0.5 ${className ?? ''}`}
-    />
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={compactKey}
+        className="inline-flex"
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.85 }}
+        transition={{ duration: 0.15 }}
+      >
+        <StatusBadge
+          label={displayText}
+          config={config satisfies StatusConfig}
+          icon={<Icon size={9} />}
+          size="xs"
+          className={`uppercase gap-0.5 ${className ?? ''}`}
+        />
+      </motion.span>
+    </AnimatePresence>
   );
 }
 

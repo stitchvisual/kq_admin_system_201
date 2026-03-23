@@ -1,8 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, FileText, Clock, ChevronRight } from 'lucide-react';
 import { colors, radii, typography } from '@/styles/botanical';
+import { fadeUp, staggerContainerFast } from '@/lib/motion/variants';
+
+const MotionLink = motion(Link);
 
 interface AttentionItem {
   type: 'overdue' | 'uninvoiced' | 'incomplete' | 'stale_draft';
@@ -75,96 +79,106 @@ export function AttentionList({
     });
   }
 
-  if (items.length === 0) {
-    return null;
-  }
-
   return (
-    <div style={{ marginBottom: '1.5rem' }}>
-      <h2
-        style={{
-        fontFamily: typography.body,
-        fontSize: 'var(--font-size-badge)',
-        fontWeight: typography.weights.bold,
-        letterSpacing: '0.09em',
-        textTransform: 'uppercase',
-        color: colors.secondary,
-          marginBottom: '0.75rem',
-        }}
-      >
-        Needs Attention
-      </h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        {items.map((item, index) => {
-          const Icon = item.type === 'overdue' 
-            ? AlertTriangle 
-            : item.type === 'uninvoiced'
-            ? FileText
-            : Clock;
+    <AnimatePresence>
+      {items.length > 0 && (
+        <motion.div
+          style={{ marginBottom: '1.5rem' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <h2
+            style={{
+              fontFamily: typography.body,
+              fontSize: 'var(--font-size-badge)',
+              fontWeight: typography.weights.bold,
+              letterSpacing: '0.09em',
+              textTransform: 'uppercase',
+              color: colors.secondary,
+              marginBottom: '0.75rem',
+            }}
+          >
+            Needs Attention
+          </h2>
 
-          const severityColors = item.severity === 'high'
-            ? {
-                bg: 'var(--status-overdue-bg)',
-                border: 'var(--status-overdue-border)',
-                text: 'var(--status-overdue-text)',
-                icon: 'var(--status-overdue-dot)',
-                leftBorder: 'var(--status-overdue-dot)',
-              }
-            : {
-                bg: 'var(--status-pending-bg)',
-                border: 'var(--status-pending-border)',
-                text: 'var(--status-pending-text)',
-                icon: 'var(--status-pending-dot)',
-                leftBorder: 'var(--status-pending-dot)',
-              };
+          <motion.div
+            style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}
+            variants={staggerContainerFast}
+            initial="hidden"
+            animate="visible"
+          >
+            <AnimatePresence>
+              {items.map((item) => {
+                const Icon =
+                  item.type === 'overdue'
+                    ? AlertTriangle
+                    : item.type === 'uninvoiced'
+                      ? FileText
+                      : Clock;
 
-          return (
-            <Link
-              key={index}
-              href={item.link}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                padding: '0.85rem 1rem',
-                borderRadius: radii.button,
-                background: severityColors.bg,
-                border: `1px solid ${severityColors.border}`,
-                borderLeft: `3px solid ${severityColors.leftBorder}`,
-                textDecoration: 'none',
-                transition: 'all 120ms',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = item.severity === 'high' 
-                  ? 'var(--status-overdue-bg)' 
-                  : 'var(--status-pending-bg)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = severityColors.bg;
-              }}
-            >
-              <Icon size={16} style={{ color: severityColors.icon, flexShrink: 0 }} />
-              <span
-                style={{
-                  flex: 1,
-                  fontSize: '0.85rem',
-                  color: severityColors.text,
-                  fontWeight: 500,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {item.message}
-              </span>
-              <ChevronRight
-                size={16}
-                style={{ color: severityColors.icon, opacity: 0.6, flexShrink: 0 }}
-              />
-            </Link>
-          );
-        })}
-      </div>
-    </div>
+                const severityColors =
+                  item.severity === 'high'
+                    ? {
+                        bg: 'var(--status-overdue-bg)',
+                        border: 'var(--status-overdue-border)',
+                        text: 'var(--status-overdue-text)',
+                        icon: 'var(--status-overdue-dot)',
+                        leftBorder: 'var(--status-overdue-dot)',
+                      }
+                    : {
+                        bg: 'var(--status-pending-bg)',
+                        border: 'var(--status-pending-border)',
+                        text: 'var(--status-pending-text)',
+                        icon: 'var(--status-pending-dot)',
+                        leftBorder: 'var(--status-pending-dot)',
+                      };
+
+                return (
+                  <MotionLink
+                    key={item.type}
+                    href={item.link}
+                    variants={fadeUp}
+                    exit={{ opacity: 0, x: -20, transition: { duration: 0.15 } }}
+                    whileHover={{ x: 3 }}
+                    whileTap={{ scale: 0.99 }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.85rem 1rem',
+                      borderRadius: radii.button,
+                      background: severityColors.bg,
+                      border: `1px solid ${severityColors.border}`,
+                      borderLeft: `3px solid ${severityColors.leftBorder}`,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <Icon size={16} style={{ color: severityColors.icon, flexShrink: 0 }} />
+                    <span
+                      style={{
+                        flex: 1,
+                        fontSize: '0.85rem',
+                        color: severityColors.text,
+                        fontWeight: 500,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {item.message}
+                    </span>
+                    <ChevronRight
+                      size={16}
+                      style={{ color: severityColors.icon, opacity: 0.6, flexShrink: 0 }}
+                    />
+                  </MotionLink>
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Clock, CheckCircle, Loader2, Users } from 'lucide-react';
+import { fadeUp, staggerContainer } from '@/lib/motion/variants';
 import { toast } from 'sonner';
 import { colors, shadows, radii, typography } from '@/styles/botanical';
 
@@ -88,7 +90,12 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
   return (
     <div id="today-schedule" style={{ marginBottom: '1.5rem' }}>
       <h2 style={sectionHeading}>Today's Schedule</h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflow: 'hidden' }}>
+      <motion.div
+        style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', overflow: 'hidden' }}
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
         {appointments.map((appointment) => {
           const start = new Date(appointment.starts_at);
           const end = new Date(appointment.ends_at);
@@ -111,18 +118,15 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
           const participantNames = appointment.participants?.map(p => p.name).join(', ');
 
           return (
-            <div
+            <motion.div
               key={appointment.id}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.boxShadow = shadows.hover;
-                el.style.transform = 'translateY(-1px)';
+              variants={fadeUp}
+              whileHover={{
+                boxShadow: shadows.hover,
+                y: -1,
+                transition: { duration: 0.15 },
               }}
-              onMouseLeave={(e) => {
-                const el = e.currentTarget as HTMLElement;
-                el.style.boxShadow = shadows.subtle;
-                el.style.transform = '';
-              }}
+              whileTap={{ scale: 0.995 }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -132,7 +136,6 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
                 background: colors.card,
                 border: `1px solid ${colors.primary}`,
                 boxShadow: shadows.subtle,
-                transition: 'box-shadow 220ms cubic-bezier(0.16,1,0.3,1), transform 220ms cubic-bezier(0.16,1,0.3,1)',
                 overflow: 'hidden',
               }}
             >
@@ -197,9 +200,12 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
                 </span>
 
                 {canComplete && (
-                  <button
+                  <motion.button
+                    type="button"
                     onClick={() => handleQuickComplete(appointment.id)}
                     disabled={completing === appointment.id}
+                    whileHover={{ opacity: 0.9 }}
+                    whileTap={{ scale: 0.96 }}
                     style={{
                       height: 32,
                       padding: '0 12px',
@@ -217,7 +223,6 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
                       gap: 5,
                       opacity: completing === appointment.id ? 0.65 : 1,
                       boxShadow: completing === appointment.id ? 'none' : `${shadows.button}, inset 0 1px 0 rgba(255,255,255,0.12)`,
-                      transition: 'all 150ms ease',
                     }}
                   >
                     {completing === appointment.id ? (
@@ -226,13 +231,13 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
                       <CheckCircle size={13} />
                     )}
                     Complete
-                  </button>
+                  </motion.button>
                 )}
               </div>
-            </div>
+            </motion.div>
           );
         })}
-      </div>
+      </motion.div>
     </div>
   );
 }

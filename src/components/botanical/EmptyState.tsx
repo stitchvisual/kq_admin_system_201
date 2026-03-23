@@ -1,10 +1,13 @@
 'use client';
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Users, FileText, Send, CheckCircle2, DollarSign, Ban, FileEdit } from 'lucide-react';
 import { colors, typography } from '@/styles/botanical';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+
+const emptyStateEase: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -24,27 +27,28 @@ function EmptyState({
   className,
 }: EmptyStateProps) {
   return (
-    <div
+    <motion.div
       className={cn(
         'flex flex-col items-center justify-center p-12 text-center empty-state',
         className,
       )}
-      style={{
-        minHeight: '200px',
-        animation: 'fadeIn 500ms ease',
-      }}
+      style={{ minHeight: '200px' }}
+      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.3, ease: emptyStateEase }}
     >
       {icon && (
-        <div
+        <motion.div
           className="mb-4"
           style={{
             fontSize: '3rem',
             color: colors.muted,
-            animation: 'float 3s ease-in-out infinite',
           }}
+          animate={{ y: [0, -8, 0] }}
+          transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
         >
           {icon}
-        </div>
+        </motion.div>
       )}
       <h3
         className="mb-2"
@@ -73,7 +77,7 @@ function EmptyState({
           {actionLabel}
         </Button>
       )}
-    </div>
+    </motion.div>
   );
 }
 
