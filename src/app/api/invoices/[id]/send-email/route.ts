@@ -41,8 +41,8 @@ export async function POST(
     const { id } = await params;
     const invoice = await invoicesService.getById(id);
 
-    if (invoice.status !== 'issued') {
-      return ApiResponse.error('Only issued invoices can be emailed.', 400, 'VALIDATION_ERROR');
+    if (invoice.status !== 'issued' && invoice.status !== 'paid') {
+      return ApiResponse.error('Only issued or paid invoices can be emailed.', 400, 'VALIDATION_ERROR');
     }
 
     const clientEmail = invoice.client?.email;
@@ -77,6 +77,8 @@ export async function POST(
       console.error('[Send Invoice Email] Resend error:', error);
       return ApiResponse.error(error.message, 500);
     }
+
+    await invoicesService.stampEmailed(id, data?.id ?? null);
 
     return ApiResponse.success({ id: data?.id, message: 'Invoice emailed successfully' });
   } catch (err) {

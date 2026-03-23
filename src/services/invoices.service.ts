@@ -493,4 +493,11 @@ export const invoicesService = {
   }> {
     return invoicesRepository.getSummaryStats();
   },
+
+  async stampEmailed(id: string, resendEmailId: string | null): Promise<void> {
+    await invoicesRepository.update(id, {
+      emailed_at: new Date(),
+      resend_email_id: resendEmailId,
+    });
+  },
 };

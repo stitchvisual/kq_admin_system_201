@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Send, CheckCircle, Download, XCircle, Loader2, Mail } from 'lucide-react';
+import { Send, CheckCircle, Download, XCircle, Loader2, Mail, MailCheck } from 'lucide-react';
 import {
   SheetHandle,
   PanelHeader,
@@ -36,6 +36,18 @@ function formatDate(date: Date | string | null): string {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+  });
+}
+
+function formatDateTime(date: Date | string | null): string {
+  if (!date) return '-';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  return d.toLocaleDateString('en-AU', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -128,6 +140,7 @@ function MetaRow({
 }
 
 function DatesSection({ invoice, overdue }: { invoice: InvoiceWithClient; overdue: boolean }) {
+  const emailedAt = invoice.emailed_at;
   return (
     <div>
       <SectionLabel>Dates</SectionLabel>
@@ -139,6 +152,15 @@ function DatesSection({ invoice, overdue }: { invoice: InvoiceWithClient; overdu
         />
         {invoice.issued_at && <MetaRow label="Issued" value={formatDate(invoice.issued_at)} />}
         {invoice.paid_at && <MetaRow label="Paid" value={formatDate(invoice.paid_at)} />}
+        {emailedAt && (
+          <div className="flex justify-between items-center py-[5px]">
+            <span className="text-[12px] text-muted-foreground">Last emailed</span>
+            <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
+              <MailCheck size={11} className="text-[hsl(130_13%_45%)] flex-shrink-0" />
+              {formatDateTime(emailedAt)}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -197,6 +219,55 @@ function NotesSection({ notes }: { notes: string }) {
     <div className="rounded-lg bg-soft-cream border border-primary p-3">
       <SectionLabel>Notes</SectionLabel>
       <p className="text-[12px] text-muted-foreground leading-relaxed">{notes}</p>
+    </div>
+  );
+}
+
+/* ─── SendEmailButton ────────────────────────────────────────────────────── */
+
+function SendEmailButton({
+  emailedAt,
+  loading,
+  onClick,
+}: {
+  emailedAt: Date | string | null | undefined;
+  loading: boolean;
+  onClick: () => void;
+}) {
+  const hasBeenSent = !!emailedAt;
+  return (
+    <div className="flex flex-col items-stretch gap-0.5">
+      <SecondaryBtn
+        type="button"
+        onClick={onClick}
+        disabled={loading}
+        className={cn(
+          hasBeenSent &&
+            'border-[hsl(130_13%_75%)] text-[hsl(130_13%_35%)] hover:bg-[hsl(130_13%_95%)] hover:border-[hsl(130_13%_65%)]'
+        )}
+      >
+        {loading ? (
+          <>
+            <Loader2 size={13} className="animate-spin" />
+            Sending…
+          </>
+        ) : hasBeenSent ? (
+          <>
+            <MailCheck size={13} />
+            Resend email
+          </>
+        ) : (
+          <>
+            <Mail size={13} />
+            Send email
+          </>
+        )}
+      </SecondaryBtn>
+      {hasBeenSent && emailedAt && !loading && (
+        <span className="text-[11px] text-muted-foreground pl-1">
+          Sent {formatDateTime(emailedAt)}
+        </span>
+      )}
     </div>
   );
 }
@@ -261,10 +332,11 @@ function ActionButtons({
               Download
             </SecondaryBtn>
             {onSendEmail && (
-              <SecondaryBtn type="button" onClick={onSendEmail} disabled={emailLoading}>
-                {emailLoading ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
-                Send Email
-              </SecondaryBtn>
+              <SendEmailButton
+                emailedAt={invoice.emailed_at}
+                loading={!!emailLoading}
+                onClick={onSendEmail}
+              />
             )}
             {onCancel && (
               <DangerBtn type="button" onClick={onCancel}>
@@ -276,7 +348,28 @@ function ActionButtons({
         </>
       )}
 
-      {(status === 'paid' || status === 'cancelled') && (
+      {status === 'paid' && (
+        <div className="flex gap-2 w-full">
+          <SecondaryBtn
+            type="button"
+            onClick={onDownload}
+            disabled={pdfLoading}
+            className="flex-1"
+          >
+            {pdfLoading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+            Download PDF
+          </SecondaryBtn>
+          {onSendEmail && (
+            <SendEmailButton
+              emailedAt={invoice.emailed_at}
+              loading={!!emailLoading}
+              onClick={onSendEmail}
+            />
+          )}
+        </div>
+      )}
+
+      {status === 'cancelled' && (
         <SecondaryBtn
           type="button"
           onClick={onDownload}

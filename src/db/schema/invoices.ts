@@ -19,6 +19,8 @@ export const invoices = pgTable('invoices', {
   service_period_end: timestamp('service_period_end'),
   issued_at: timestamp('issued_at'),
   paid_at: timestamp('paid_at'),
+  emailed_at: timestamp('emailed_at'),
+  resend_email_id: text('resend_email_id'),
   created_at: timestamp('created_at').defaultNow().notNull(),
   updated_at: timestamp('updated_at'),
   deleted_at: timestamp('deleted_at'),
