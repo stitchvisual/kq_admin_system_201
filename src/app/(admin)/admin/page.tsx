@@ -1,77 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Leaf } from 'lucide-react';
+import { Leaf, RefreshCw } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { AttentionList } from './_components/AttentionList';
 import { TodaySchedule } from './_components/TodaySchedule';
 import { SkeletonDashboard } from '@/components/ui/enhanced-skeleton';
+import { useDashboard } from '@/hooks/use-dashboard';
 import { colors } from '@/styles/botanical';
-
-interface Participant {
-  id: string;
-  client_id: string;
-  name: string;
-  split_rate: string;
-}
-
-interface AppointmentWithClient {
-  id: string;
-  starts_at: string;
-  ends_at: string;
-  status: string;
-  is_group?: boolean;
-  client: {
-    id: string;
-    name: string;
-  } | null;
-  participants?: Participant[];
-}
-
-interface DashboardData {
-  today: {
-    appointments: AppointmentWithClient[];
-    incomplete_past_end: number;
-  };
-  uninvoiced_count: number;
-  invoices: {
-    overdue: { count: number; total: number };
-    stale_drafts: number;
-  };
-}
+import { toast } from 'sonner';
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data,
+    error,
+    isLoading,
+    isValidating,
+    refresh,
+  } = useDashboard();
 
-  const fetchDashboard = async () => {
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/dashboard/summary');
-      const result = await res.json().catch(() => ({}));
-      if (res.ok && result.success) {
-        setData(result.data);
-      } else {
-        const errMsg = typeof result.error === 'string'
-          ? result.error
-          : result.error?.message || (res.status === 401 ? 'Please log in again.' : 'Failed to load dashboard');
-        setError(errMsg);
-      }
-    } catch (err) {
-      console.error('Failed to fetch dashboard data:', err);
-      setError('Failed to load dashboard. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+  const handleRetry = () => {
+    refresh();
   };
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  if (loading) {
+  // Loading state with skeleton
+  if (isLoading && !data) {
     return (
       <div className="bg-page min-h-screen p-4 md:p-6">
         <div className="max-w-[1200px] mx-auto">
@@ -81,7 +34,8 @@ export default function DashboardPage() {
     );
   }
 
-  if (error || !data) {
+  // Error state
+  if (error && !data) {
     return (
       <div className="min-h-screen p-4 md:p-6 flex items-center justify-center" style={{ background: colors.page }}>
         <div className="max-w-[1200px] w-full">
@@ -97,15 +51,16 @@ export default function DashboardPage() {
               Unable to Load Dashboard
             </h2>
             <p className="mb-6" style={{ color: colors.secondary }}>
-              {error || 'No data could be loaded.'}
+              {error.message || 'No data could be loaded.'}
             </p>
             <button
-              onClick={fetchDashboard}
-              className="px-6 py-2 rounded-lg font-medium text-white transition-colors hover:opacity-90"
+              onClick={handleRetry}
+              className="px-6 py-2 rounded-lg font-medium text-white transition-colors hover:opacity-90 inline-flex items-center gap-2"
               style={{
                 background: `linear-gradient(135deg, ${colors.primaryBase} 0%, ${colors.primaryHover} 100%)`,
               }}
             >
+              <RefreshCw size={16} />
               Try Again
             </button>
           </div>
@@ -114,27 +69,83 @@ export default function DashboardPage() {
     );
   }
 
+  // No data state
+  if (!data) {
+    return (
+      <div className="bg-page min-h-screen p-4 md:p-6">
+        <div className="max-w-[1200px] mx-auto">
+          <SkeletonDashboard />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-4 md:p-6" style={{ background: colors.page }}>
       <div className="max-w-[1200px] mx-auto">
-        {/* Header */}
-        <PageHeader
-          icon={<Leaf size={16} style={{ color: colors.primaryBase }} />}
-          title="Dashboard"
-          subtitle="Your daily overview"
-        />
+        {/* Header with refresh indicator */}
+        <div className="flex items-center justify-between mb-4">
+          <PageHeader
+            icon={<Leaf size={16} style={{ color: colors.primaryBase }} />}
+            title="Dashboard"
+            subtitle="Your daily overview"
+          />
+          
+          {/* Refresh button with loading state */}
+          <motion.button
+            onClick={() => {
+              toast.promise(
+                refresh(),
+                {
+                  loading: 'Refreshing...',
+                  success: 'Dashboard updated',
+                  error: 'Failed to refresh',
+                }
+              );
+            }}
+            disabled={isValidating}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="p-2 rounded-lg transition-colors"
+            style={{
+              background: colors.card,
+              border: `1px solid ${colors.primary}`,
+              opacity: isValidating ? 0.5 : 1,
+            }}
+          >
+            <RefreshCw
+              size={18}
+              style={{ color: colors.muted }}
+              className={isValidating ? 'animate-spin' : ''}
+            />
+          </motion.button>
+        </div>
 
-        {/* Needs Attention */}
-        <AttentionList
-          overdueCount={data.invoices.overdue.count}
-          overdueTotal={data.invoices.overdue.total}
-          uninvoicedCount={data.uninvoiced_count}
-          incompletePastEnd={data.today.incomplete_past_end}
-          staleDraftsCount={data.invoices.stale_drafts}
-        />
+        {/* Content with revalidation indicator */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={data ? 'loaded' : 'loading'}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+          >
+            {/* Needs Attention */}
+            <AttentionList
+              overdueCount={data.invoices.overdue.count}
+              overdueTotal={data.invoices.overdue.total}
+              uninvoicedCount={data.uninvoiced_count}
+              incompletePastEnd={data.today.incomplete_past_end}
+              staleDraftsCount={data.invoices.stale_drafts}
+            />
 
-        {/* Today's Schedule */}
-        <TodaySchedule appointments={data.today.appointments} onComplete={fetchDashboard} />
+            {/* Today's Schedule */}
+            <TodaySchedule
+              appointments={data.today.appointments}
+              onComplete={() => refresh()}
+            />
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

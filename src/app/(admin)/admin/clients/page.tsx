@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Search, Leaf, Mail, Phone, UserCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useMobilePanel } from '@/context/MobilePanelContext';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { RateCodeStatus } from './_components/RateCodeStatus';
 import { ClientDetailPanel } from './_components/ClientDetailPanel';
 import { ClientFormPanel } from './_components/ClientFormPanel';
 import { ClientDeletePanel } from './_components/ClientDeletePanel';
+import { SkeletonClientDetail } from '@/components/ui/enhanced-skeleton';
 import type { Client } from '@/db/schema/clients';
 import type { NdisPricing } from '@/db/schema/ndis_pricing';
 import { colors } from '@/styles/botanical';
@@ -99,6 +101,7 @@ const fallbackPricingCodes: NdisPricing[] = [
 ];
 
 export default function ClientsPage() {
+  const { setOpen: setMobilePanelOpen } = useMobilePanel();
   const [clients, setClients] = useState<Client[]>([]);
   const [pricingCodes, setPricingCodes] = useState<NdisPricing[]>([]);
   const [loading, setLoading] = useState(true);
@@ -216,20 +219,25 @@ export default function ClientsPage() {
   };
 
   const handleClientClick = async (client: Client) => {
+    // Immediately set client and open panel with skeleton for instant feedback
     setSelectedClient(client);
+    setClientDetail(null); // Clear previous detail to show skeleton
     setLoadingDetail(true);
+    openPanel('view'); // Open panel immediately - skeleton will show while loading
+    
     try {
       const res = await fetch(`/api/clients/${client.id}/detail`);
       const data = await res.json();
       if (data.success) {
         setClientDetail(data.data);
-        openPanel('view');
       } else {
         toast.error('Failed to load client details');
+        closePanel(); // Close panel on error
       }
     } catch (error) {
       console.error('Failed to fetch client detail:', error);
       toast.error('Failed to load client details');
+      closePanel(); // Close panel on error
     } finally {
       setLoadingDetail(false);
     }
@@ -323,6 +331,12 @@ export default function ClientsPage() {
   };
 
   const panelOpen = panelMode !== 'empty';
+
+  // Raise main above bottom nav when panel is open on mobile
+  useEffect(() => {
+    setMobilePanelOpen(panelOpen);
+    return () => setMobilePanelOpen(false);
+  }, [panelOpen, setMobilePanelOpen]);
 
   const handleDelete = async () => {
     if (!selectedClient) return;
@@ -539,6 +553,7 @@ export default function ClientsPage() {
           className={cn(
             'relative flex flex-col overflow-hidden bg-card flex-shrink-0',
             'fixed inset-x-0 bottom-0 z-50 max-h-[88vh] rounded-t-[20px] rounded-b-none border-t border-primary',
+            'max-md:bg-[hsl(var(--color-card))] max-md:shadow-soft-lg max-md:pb-[env(safe-area-inset-bottom)]',
             'md:border-t-0 md:border-l md:border-primary',
             'translate-y-full',
             'transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
@@ -561,7 +576,10 @@ export default function ClientsPage() {
                 : 'max-md:translate-x-0 max-md:opacity-100 md:translate-x-4 md:opacity-0'
             )}
           >
-            {panelMode === 'view' && clientDetail && selectedClient && (
+            {panelMode === 'view' && selectedClient && (
+              loadingDetail || !clientDetail ? (
+                <SkeletonClientDetail />
+              ) : (
               <ClientDetailPanel
                 client={selectedClient}
                 rateCodes={clientDetail.rate_codes}
@@ -572,6 +590,7 @@ export default function ClientsPage() {
                 onEdit={openEditClient}
                 onDelete={openDeleteConfirm}
               />
+              )
             )}
             {(panelMode === 'new' || panelMode === 'edit') && (
               <ClientFormPanel

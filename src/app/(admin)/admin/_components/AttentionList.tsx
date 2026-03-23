@@ -11,6 +11,7 @@ const MotionLink = motion(Link);
 interface AttentionItem {
   type: 'overdue' | 'uninvoiced' | 'incomplete' | 'stale_draft';
   message: string;
+  detail?: string;
   link: string;
   severity: 'high' | 'medium';
 }
@@ -21,6 +22,16 @@ interface AttentionListProps {
   uninvoicedCount: number;
   incompletePastEnd: number;
   staleDraftsCount: number;
+}
+
+function buildGenerateAllUninvoicedLink(): string {
+  // Use a very wide range so users see all completed, uninvoiced sessions.
+  const params = new URLSearchParams({
+    tab: 'generate',
+    startDate: '1970-01-01',
+    endDate: '2099-12-31',
+  });
+  return `/admin/invoices?${params.toString()}`;
 }
 
 function formatCurrency(cents: number): string {
@@ -54,7 +65,8 @@ export function AttentionList({
     items.push({
       type: 'uninvoiced',
       message: `${uninvoicedCount} ${uninvoicedCount === 1 ? 'session' : 'sessions'} ready to invoice`,
-      link: '/admin/invoices',
+      detail: 'Completed sessions that have not been added to an invoice yet',
+      link: buildGenerateAllUninvoicedLink(),
       severity: 'medium',
     });
   }
@@ -155,18 +167,36 @@ export function AttentionList({
                     }}
                   >
                     <Icon size={16} style={{ color: severityColors.icon, flexShrink: 0 }} />
-                    <span
-                      style={{
-                        flex: 1,
-                        fontSize: '0.85rem',
-                        color: severityColors.text,
-                        fontWeight: 500,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {item.message}
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span
+                        style={{
+                          display: 'block',
+                          fontSize: '0.85rem',
+                          color: severityColors.text,
+                          fontWeight: 500,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {item.message}
+                      </span>
+                      {item.detail && (
+                        <span
+                          style={{
+                            display: 'block',
+                            marginTop: '0.15rem',
+                            fontSize: '0.75rem',
+                            color: severityColors.text,
+                            opacity: 0.75,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {item.detail}
+                        </span>
+                      )}
                     </span>
                     <ChevronRight
                       size={16}

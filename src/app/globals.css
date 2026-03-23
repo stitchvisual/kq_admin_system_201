@@ -46,6 +46,12 @@
   --status-completed-border: rgba(90, 138, 96, 0.3);
   --status-completed-dot: #5a8a60;
 
+  /* Status: Invoiced (completed & invoiced) */
+  --status-invoiced-bg: rgba(100, 130, 160, 0.15);
+  --status-invoiced-text: #2d4a5c;
+  --status-invoiced-border: rgba(100, 130, 160, 0.3);
+  --status-invoiced-dot: #6482a0;
+
   /* Status: Pending / Draft */
   --status-pending-bg: rgba(182, 148, 112, 0.15);
   --status-pending-text: #6b4d2f;

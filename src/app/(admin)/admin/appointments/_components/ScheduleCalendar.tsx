@@ -64,7 +64,7 @@ function useResponsiveView() {
 // ============================================================================
 
 function appointmentToEvent(appt: AppointmentWithClient): EventInput {
-  const palette = getAppointmentStatusStyle(appt.status || 'confirmed');
+  const palette = getAppointmentStatusStyle(appt.status || 'confirmed', appt.invoiced);
   const isGroup = appt.is_group;
   const displayName = isGroup
     ? `Group (${appt.participants?.length || appt.group_size || 0})`
@@ -151,6 +151,11 @@ function EventContent({
         <span className="text-[10px] font-semibold truncate" style={{ color: palette.text }}>
           {event.title}
         </span>
+        {invoiced && (
+          <span className="text-[8px] font-semibold text-muted-foreground/60 bg-muted/30 px-1 py-px rounded-full ml-auto flex-shrink-0">
+            Inv
+          </span>
+        )}
       </div>
     );
   }

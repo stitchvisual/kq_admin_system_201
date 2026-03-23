@@ -39,8 +39,11 @@ function formatTime(date: Date): string {
 
 export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) {
   const [completing, setCompleting] = useState<string | null>(null);
+  const [optimisticStatuses, setOptimisticStatuses] = useState<Record<string, string>>({});
 
   const handleQuickComplete = async (appointmentId: string) => {
+    // Optimistically flip to completed for instant UI feedback.
+    setOptimisticStatuses(prev => ({ ...prev, [appointmentId]: 'completed' }));
     setCompleting(appointmentId);
     try {
       const res = await fetch(`/api/appointments/${appointmentId}/complete`, {
@@ -54,9 +57,17 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
         toast.success('Session marked as complete');
         onComplete?.();
       } else {
+        setOptimisticStatuses(prev => {
+          const { [appointmentId]: _, ...rest } = prev;
+          return rest;
+        });
         toast.error(data.error?.message ?? 'Failed to complete session');
       }
     } catch (error) {
+      setOptimisticStatuses(prev => {
+        const { [appointmentId]: _, ...rest } = prev;
+        return rest;
+      });
       console.error('Failed to complete session:', error);
       toast.error('Failed to complete session');
     } finally {
@@ -100,14 +111,15 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
           const start = new Date(appointment.starts_at);
           const end = new Date(appointment.ends_at);
           const isPastEndTime = end <= new Date();
+          const effectiveStatus = optimisticStatuses[appointment.id] ?? appointment.status;
           const canComplete = 
-            (appointment.status === 'confirmed' || appointment.status === 'pending') && 
+            (effectiveStatus === 'confirmed' || effectiveStatus === 'pending') && 
             isPastEndTime;
 
           const statusColor =
-            appointment.status === 'completed'
+            effectiveStatus === 'completed'
               ? { bg: 'var(--status-completed-bg)', text: 'var(--status-completed-text)', dot: 'var(--status-completed-dot)' }
-              : appointment.status === 'confirmed'
+              : effectiveStatus === 'confirmed'
               ? { bg: 'var(--status-confirmed-bg)', text: 'var(--status-confirmed-text)', dot: 'var(--status-confirmed-dot)' }
               : { bg: 'var(--status-pending-bg)', text: 'var(--status-pending-text)', dot: 'var(--status-pending-dot)' };
 
@@ -196,7 +208,7 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
                     textTransform: 'capitalize',
                   }}
                 >
-                  {appointment.status}
+                  {effectiveStatus}
                 </span>
 
                 {canComplete && (

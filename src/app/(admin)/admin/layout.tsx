@@ -5,6 +5,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Toaster } from "@/components/ui/sonner";
 import { SentryErrorBoundary } from "@/components/sentry/SentryErrorBoundary";
 import { AdminSidebarNav } from "@/app/(admin)/admin/_components/AdminSidebarNav";
+import { AdminMainWithPanelZ } from "@/app/(admin)/admin/_components/AdminMainWithPanelZ";
+import { MobilePanelProvider } from "@/context/MobilePanelContext";
 import { colors, shadows, radii, typography } from "@/styles/botanical";
 
 const navItems = [
@@ -26,6 +28,7 @@ export default async function AdminLayout({
 
   return (
     <SentryErrorBoundary>
+      <MobilePanelProvider>
       <div className="min-h-screen flex flex-col md:flex-row">
         {/* Desktop sidebar */}
         <aside
@@ -119,12 +122,13 @@ export default async function AdminLayout({
           ))}
         </nav>
 
-        {/* Main content */}
-        <main className="flex-1 overflow-hidden pb-20 md:pb-0">
+        {/* Main content — z-[60] on mobile when a panel is open so it appears above bottom nav */}
+        <AdminMainWithPanelZ className="flex-1 overflow-hidden pb-20 md:pb-0">
           {children}
           <Toaster />
-        </main>
+        </AdminMainWithPanelZ>
       </div>
+      </MobilePanelProvider>
     </SentryErrorBoundary>
   );
 }

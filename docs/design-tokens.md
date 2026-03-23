@@ -2,62 +2,155 @@
 
 This document describes the design token strategy for the KQ System botanical design system.
 
-## Current State
+## Architecture Overview
 
-Design tokens live in two places:
+Design tokens live in two coordinated locations:
 
-### 1. `src/styles/botanical.ts` (JavaScript/TypeScript)
+### 1. `src/styles/botanical.ts` (TypeScript)
 
-- **Purpose:** JS/TS consumers for inline styles, themes, and programmatic use (e.g. StatCard, DataTable, calendar event colors).
-- **Contents:** `colors`, `darkColors`, status palettes (`appointmentStatus`, `invoiceStatus`, `darkAppointmentStatus`, `darkInvoiceStatus`), `shadows`, `darkShadows`, `radii`, `typography`, `skeleton`, `darkSkeleton`, etc.
-- **Format:** HSL strings (`hsl(...)`), rgba strings, hex, and references to `var(--font-*)`.
+**Purpose:** JS/TS consumers for inline styles, themes, and programmatic use.
+
+**Contents:**
+- **Core colors:** `colors`, `darkColors` (backgrounds, borders, text, primary accent)
+- **Status palettes:** `appointmentStatus`, `invoiceStatus` (with dark variants)
+- **Client palettes:** `CLIENT_PALETTES`, `GROUP_PALETTE`, `getClientPalette()`
+- **Shadows:** `shadows`, `darkShadows`
+- **Typography:** `typography` (fonts, sizes, weights)
+- **Spacing & radii:** `spacing`, `radii`, `sizes`
+- **Animations:** `easing`, `duration`, `animations`
+- **Skeleton:** `skeleton`, `darkSkeleton`
+- **Style presets:** `buttonStyles`, `formStyles`, `cardStyles`
+
+**Exports:**
+```typescript
+// Types
+export type StatusKey = 'pending' | 'confirmed' | 'completed' | 'invoiced' | 'cancelled' | 'noShow';
+export type InvoiceStatusKey = 'draft' | 'issued' | 'paid' | 'overdue' | 'cancelled';
+export interface StatusPalette { bg: string; border: string; dot: string; text: string; }
+
+// Core tokens
+export const colors, darkColors, shadows, darkShadows, typography, spacing, radii, sizes;
+
+// Status palettes
+export const appointmentStatus, darkAppointmentStatus, invoiceStatus, darkInvoiceStatus;
+
+// Client colors
+export const CLIENT_PALETTES, GROUP_PALETTE, getClientPalette;
+
+// Animation tokens
+export const easing, duration, animations;
+
+// Skeleton loading
+export const skeleton, darkSkeleton;
+
+// Style presets
+export const buttonStyles, formStyles, cardStyles;
+
+// Theme helpers
+export const getAppointmentStatusColors, getInvoiceStatusColors, getShadows, getSkeleton;
+export const getAppointmentStatusStyle, getInvoiceStatusStyle;
+```
 
 ### 2. `src/app/globals.css` (CSS)
 
-- **Purpose:** Tailwind theme, CSS utilities, and components that use CSS variables.
-- **Contents:** `@theme` block with Tailwind 4 variables (`--color-background`, `--color-foreground`, etc.), `--status-*` semantic tokens (confirmed, completed, pending, overdue, group), panel accents, shadows, radii, typography.
+**Purpose:** Tailwind theme, CSS utilities, and components that use CSS variables.
 
-## Strategy
+**Contents:**
+- `@theme` block with Tailwind 4 variables
+- Semantic status tokens (`--status-confirmed-*`, `--status-pending-*`, etc.)
+- Shadow tokens (`--shadow-soft`, `--shadow-card`, etc.)
+- Typography tokens (`--font-heading`, `--font-body`, `--font-size-*`)
+- Panel and animation tokens
+- CSS utility classes
 
-1. **Source of truth:** CSS variables in `globals.css` are the source of truth for Tailwind and CSS-based styling.
-2. **JS consumers:** `botanical.ts` remains for JS-only consumers (inline styles, dynamic palettes, theme-aware logic). It may import/compute from CSS where practical, or stay as a parallel token set.
-3. **Incremental migration:** No big-bang refactor. When touching a component, prefer CSS variables if it's a pure-CSS/Tailwind component. Keep botanical.ts where it already drives JS behavior.
+## Key Improvements
 
-## Mapping: botanical.ts ↔ globals.css
+### Status Palette Generation
 
-| botanical.ts | globals.css | Notes |
+Status colors are now generated from a single factory function, ensuring consistency:
+
+```typescript
+const createStatusPalettes = (isDark: boolean) => ({
+  pending: { bg: `rgba(182, 148, 112, ${isDark ? 0.28 : 0.22})`, ... },
+  confirmed: { bg: `rgba(120, 149, 170, ${isDark ? 0.28 : 0.22})`, ... },
+  // ... other statuses
+});
+```
+
+### Invoice Status Reuse
+
+Invoice statuses reuse appointment palette colors where semantically appropriate:
+
+```typescript
+export const invoiceStatus = {
+  draft: appointmentStatus.pending,      // Same visual treatment
+  issued: appointmentStatus.confirmed,
+  paid: appointmentStatus.completed,
+  overdue: { /* custom red */ },
+  cancelled: appointmentStatus.cancelled,
+};
+```
+
+### Skeleton Size Sharing
+
+Skeleton dimensions are shared between light and dark modes:
+
+```typescript
+const skeletonSizes = { text: {...}, button: {...}, ... };
+export const skeleton = { ...skeletonSizes, shimmerStart: '...' };
+export const darkSkeleton = { ...skeletonSizes, shimmerStart: '...' };
+```
+
+### Animation Token Structure
+
+Animations are now organized with separate easing and duration exports:
+
+```typescript
+export const easing = { smooth: 'cubic-bezier(0.16, 1, 0.3, 1)', ... };
+export const duration = { fast: 120, normal: 200, ... };
+export const animations = { ...easing, ...duration, subtle: `all 120ms ${easing.smooth}`, ... };
+```
+
+## Usage Guidelines
+
+### When to use botanical.ts
+- Inline styles requiring dynamic values
+- Theme-aware color selection (e.g., `useThemeColors()` hook)
+- FullCalendar event styling
+- Client-specific color palettes
+- Status badge colors in JS components
+
+### When to use CSS variables
+- Tailwind classes (`bg-background`, `text-foreground`)
+- CSS module styles
+- Server components (no JS runtime)
+- Pure CSS animations and transitions
+
+### Theme Hook Example
+
+```typescript
+import { useThemeColors } from '@/hooks/use-theme-colors';
+
+function MyComponent() {
+  const { colors, appointmentStatus, isDark } = useThemeColors();
+  return <div style={{ background: colors.card }}>...</div>;
+}
+```
+
+## Token Mapping Reference
+
+| botanical.ts | globals.css | Usage |
 |--------------|-------------|-------|
-| `colors.page` | `--color-background` | `42 26% 95%` (HSL raw in @theme) |
-| `colors.card` | `--color-card` | `36 32% 99%` |
-| `colors.heading` | `--color-foreground` | `145 15% 20%` |
-| `colors.body` | `--color-chip-text` / similar | `145 15% 28%` |
-| `colors.primary` | `--color-border` | Border color; `34 22% 87%` |
-| `colors.primaryBase` | `--color-primary` | `130 20% 46%` (sage green) |
-| `radii.card` | `--radius-card` | 12px |
-| `radii.button` | `--radius-button` | 8px |
-| `typography.heading` | `--font-heading` | Playfair Display |
-| `typography.body` | `--font-body` | Source Sans 3 |
-| `typography.sizes.body` | `--font-size-body` | 0.875rem |
-| `typography.sizes.meta` | `--font-size-meta` | 0.8rem |
-| `typography.sizes.badge` | `--font-size-badge` | 0.7rem |
-| `appointmentStatus.*` | `--status-confirmed-*`, `--status-completed-*`, `--status-pending-*`, `--status-overdue-*` | CSS has semantic invoice/status names; botanical has appointment/invoice palettes |
-| `invoiceStatus.*` | Same `--status-*` tokens | Aligned conceptually |
-
-## Chip Tokens (Semantic Aliases)
-
-For filter chips, date range selectors, and similar UI:
-
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--color-chip-border` | `hsl(34 22% 74%)` | Chip border (inactive) |
-| `--color-chip-bg` | `hsl(42 26% 92%)` | Chip background (inactive) |
-| `--color-chip-bg-hover` | `hsl(42 26% 87%)` | Chip hover background |
-| `--color-chip-text` | `hsl(145 15% 28%)` | Chip text (inactive) |
-
-Components like FilterChip can later use these via `var(--color-chip-border)`, `var(--color-chip-bg)`, etc.
+| `colors.page` | `--color-background` | Page background |
+| `colors.card` | `--color-card` | Card surfaces |
+| `colors.heading` | `--color-foreground` | Headings |
+| `colors.primaryBase` | `--color-primary` | Primary accent |
+| `radii.card` | `--radius-card` | Card border radius |
+| `typography.heading` | `--font-heading` | Heading font |
+| `appointmentStatus.*` | `--status-*` tokens | Status colors |
 
 ## Migration Path
 
-- **Incremental:** When refactoring a component, prefer CSS variables if the component is styled via Tailwind or plain CSS.
-- **Keep botanical.ts for:** Inline styles, theme-aware helpers (`getAppointmentStatusColors`, `getClientPalette`), FullCalendar styling, and any JS-driven color selection.
-- **Avoid:** Duplicating tokens with slightly different values. When adding a new semantic token (e.g. chip colors), add it to globals.css and optionally mirror in botanical.ts only if a JS consumer needs it.
+1. **Incremental:** When refactoring, prefer CSS variables for Tailwind/CSS components
+2. **Keep botanical.ts for:** JS-driven styling, theme logic, FullCalendar, client palettes
+3. **Avoid:** Duplicating tokens with different values - update both sources together

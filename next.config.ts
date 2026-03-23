@@ -6,6 +6,27 @@ const nextConfig: NextConfig = {
   // It uses native Node.js modules that break when bundled — it must be
   // loaded directly from node_modules at runtime instead.
   serverExternalPackages: ["@react-pdf/renderer"],
+
+  // Security headers for production
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // Prevent clickjacking
+          { key: 'X-Frame-Options', value: 'DENY' },
+          // Prevent MIME type sniffing
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          // Control referrer information
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          // Disable unnecessary browser features
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          // XSS Protection (legacy but still useful for older browsers)
+          { key: 'X-XSS-Protection', value: '1; mode=block' },
+        ],
+      },
+    ];
+  },
 };
 
 export default withSentryConfig(nextConfig, {
