@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import useSWR from 'swr';
 import { AnimatePresence, motion } from 'framer-motion';
 import { staggerContainerFast } from '@/lib/motion/variants';
 import {
@@ -22,16 +23,14 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { InvoiceWithClient, ClientSessionGroup as ClientSessionGroupType, UninvoicedSession } from '@/repositories/invoices.repository';
 import { StatCard, StatCardGrid } from '@/components/shared/StatCard';
-import { EmptyInvoices } from '@/components/botanical';
-import {
-  InvoiceRow as InvoiceRowComponent,
-  InvoiceDetailPanel,
-  BulkIssueModal,
-  BulkMarkPaidModal,
-  SessionSelectionBar,
-  ClientSessionGroup as ClientSessionGroupComponent,
-  GenerateDateRangeSelector,
-} from '@/components/invoices';
+import { EmptyInvoices } from '@/components/botanical/EmptyState';
+import { InvoiceRow as InvoiceRowComponent } from '@/components/invoices/InvoiceRow';
+import { InvoiceDetailPanel } from '@/components/invoices/InvoiceDetailPanel';
+import { BulkIssueModal, BulkMarkPaidModal } from '@/components/invoices/BulkActionModal';
+import { SessionSelectionBar } from '@/components/invoices/SessionSelectionBar';
+import { ClientSessionGroup as ClientSessionGroupComponent } from '@/components/invoices/ClientSessionGroup';
+import { GenerateDateRangeSelector } from '@/components/invoices/GenerateDateRangeSelector';
+import { apiDataFetcher } from '@/lib/api-swr-fetcher';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 // ============================================================================
@@ -43,6 +42,28 @@ interface PaginationInfo {
   limit: number;
   total: number;
   totalPages: number;
+}
+
+async function fetchInvoiceList(url: string): Promise<{
+  list: InvoiceWithClient[];
+  pagination: PaginationInfo;
+}> {
+  const res = await fetch(url);
+  const result = await res.json().catch(() => ({}));
+  if (!res.ok || !result.success) {
+    const msg = result.error?.message ?? `Failed to load invoices (${res.status})`;
+    throw new Error(msg);
+  }
+  return {
+    list: result.data,
+    pagination:
+      result.pagination ?? {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+      },
+  };
 }
 
 interface SummaryStats {
@@ -125,8 +146,6 @@ export default function UnifiedInvoicesPage() {
   const [activeTab, setActiveTab] = useState<'invoices' | 'generate'>('invoices');
 
   // --- Invoice list state ---
-  const [invoices, setInvoices] = useState<InvoiceWithClient[]>([]);
-  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithClient | null>(null);
   const [panelMode, setPanelMode] = useState<PanelMode>('empty');
@@ -136,13 +155,39 @@ export default function UnifiedInvoicesPage() {
   const [pdfLoading, setPdfLoading] = useState<string | null>(null);
   const [emailLoading, setEmailLoading] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [summaryStats, setSummaryStats] = useState<SummaryStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
   const [pagination, setPagination] = useState<PaginationInfo>({
     page: 1,
     limit: 20,
     total: 0,
     totalPages: 0,
+  });
+
+  const invoicesUrl = useMemo(() => {
+    const params = new URLSearchParams();
+    if (statusFilter !== 'all') {
+      params.set('status', statusFilter);
+    }
+    params.set('page', String(pagination.page));
+    params.set('limit', String(pagination.limit));
+    return `/api/invoices?${params}`;
+  }, [statusFilter, pagination.page, pagination.limit]);
+
+  const {
+    data: invoiceListData,
+    isLoading: loading,
+    mutate: mutateInvoices,
+  } = useSWR(invoicesUrl, fetchInvoiceList, {
+    revalidateOnFocus: false,
+  });
+
+  const invoices = invoiceListData?.list ?? [];
+
+  const {
+    data: summaryStats,
+    isLoading: statsLoading,
+    mutate: mutateSummary,
+  } = useSWR('/api/invoices/summary', () => apiDataFetcher<SummaryStats>('/api/invoices/summary'), {
+    revalidateOnFocus: false,
   });
 
   // --- Bulk modal state ---
@@ -208,12 +253,10 @@ export default function UnifiedInvoicesPage() {
   }, [statusFilter]);
 
   useEffect(() => {
-    fetchInvoices();
-  }, [statusFilter, pagination.page]);
-
-  useEffect(() => {
-    fetchSummaryStats();
-  }, []);
+    if (invoiceListData?.pagination) {
+      setPagination(invoiceListData.pagination);
+    }
+  }, [invoiceListData?.pagination]);
 
   const fetchUninvoicedSessions = async (signal?: AbortSignal) => {
     if (!startDate || !endDate) return;
@@ -252,45 +295,6 @@ export default function UnifiedInvoicesPage() {
     fetchUninvoicedSessions(controller.signal);
     return () => controller.abort();
   }, [startDate, endDate]);
-
-  const fetchSummaryStats = async () => {
-    setStatsLoading(true);
-    try {
-      const res = await fetch('/api/invoices/summary');
-      const data = await res.json();
-      if (data.success) {
-        setSummaryStats(data.data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch summary stats:', error);
-    } finally {
-      setStatsLoading(false);
-    }
-  };
-
-  const fetchInvoices = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (statusFilter !== 'all') {
-        params.set('status', statusFilter);
-      }
-      params.set('page', String(pagination.page));
-      params.set('limit', String(pagination.limit));
-      const res = await fetch(`/api/invoices?${params}`);
-      const data = await res.json();
-      if (data.success) {
-        setInvoices(data.data);
-        if (data.pagination) {
-          setPagination(data.pagination);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch invoices:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // --- Panel operations ---
   const openPanel = (mode: PanelMode) => {
@@ -349,8 +353,8 @@ export default function UnifiedInvoicesPage() {
       });
       const data = await res.json();
       if (data.success) {
-        await fetchInvoices();
-        await fetchSummaryStats();
+        await mutateInvoices();
+        await mutateSummary();
         if (selectedInvoice?.id === invoiceId) {
           setSelectedInvoice(data.data);
         }
@@ -385,8 +389,8 @@ export default function UnifiedInvoicesPage() {
     setShowBulkIssueModal(false);
     toast.success(`Issued ${successCount} invoice(s)`);
     setSelectedIds(new Set());
-    await fetchInvoices();
-    await fetchSummaryStats();
+    await mutateInvoices();
+    await mutateSummary();
   };
 
   const handleMarkPaid = async (invoiceId: string) => {
@@ -397,8 +401,8 @@ export default function UnifiedInvoicesPage() {
       });
       const data = await res.json();
       if (data.success) {
-        await fetchInvoices();
-        await fetchSummaryStats();
+        await mutateInvoices();
+        await mutateSummary();
         if (selectedInvoice?.id === invoiceId) {
           setSelectedInvoice(data.data);
         }
@@ -433,8 +437,8 @@ export default function UnifiedInvoicesPage() {
     setShowBulkMarkPaidModal(false);
     toast.success(`Marked ${successCount} invoice(s) as paid`);
     setSelectedIds(new Set());
-    await fetchInvoices();
-    await fetchSummaryStats();
+    await mutateInvoices();
+    await mutateSummary();
   };
 
   const handleCancel = async (invoiceId: string) => {
@@ -446,8 +450,8 @@ export default function UnifiedInvoicesPage() {
       const data = await res.json();
       if (data.success) {
         closePanel();
-        await fetchInvoices();
-        await fetchSummaryStats();
+        await mutateInvoices();
+        await mutateSummary();
         toast.success('Invoice cancelled successfully');
       } else {
         toast.error(data.error?.message ?? 'Failed to cancel invoice');
@@ -591,8 +595,8 @@ export default function UnifiedInvoicesPage() {
         }
         toast.success(`Generated and issued ${data.data.length} invoice(s)`);
         await fetchUninvoicedSessions();
-        await fetchInvoices();
-        await fetchSummaryStats();
+        await mutateInvoices();
+        await mutateSummary();
       } else {
         toast.error(data.error?.message ?? 'Failed to generate invoices');
       }
@@ -1153,7 +1157,7 @@ function InvoicesTabContent({
           <EmptyInvoices statusFilter={statusFilter} />
         </div>
       ) : (
-        <div className="rounded-xl border border-primary bg-card overflow-hidden">
+        <div className="rounded-xl border border-primary bg-card overflow-visible">
           {/* Desktop table header */}
           <div className="hidden lg:grid lg:grid-cols-[40px_120px_1fr_100px_100px_120px_100px_140px] gap-4 items-center px-4 py-3 border-b border-primary bg-mutedBg">
             <input

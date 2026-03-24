@@ -80,8 +80,9 @@ export function InvoiceRow({
   return (
     <motion.div
       className={cn(
-        'grid grid-cols-[40px_120px_1fr_100px_100px_120px_100px_140px] gap-4 px-4 py-[0.85rem]',
-        'border-b border-primary/80 items-center cursor-pointer'
+        'invoice-row grid grid-cols-[40px_120px_1fr_100px_100px_120px_100px_140px] gap-4 px-4 py-[0.85rem]',
+        'border-b border-primary/80 items-center cursor-pointer relative',
+        showOverflow && 'z-[100]'
       )}
       variants={fadeUp}
       whileHover={{ backgroundColor: 'hsl(130 13% 50% / 0.04)' }}
@@ -214,12 +215,13 @@ export function InvoiceRow({
             <>
               <div
                 key="overflow-backdrop"
-                className="fixed inset-0 z-10"
+                className="fixed inset-0 z-[90]"
+                aria-hidden
                 onClick={() => setShowOverflow(false)}
               />
               <motion.div
                 key="overflow-menu"
-                className="absolute right-0 top-full mt-1 bg-[hsl(var(--color-card))] border border-primary rounded-lg shadow-lg z-20 min-w-[140px] overflow-hidden"
+                className="absolute right-0 top-full mt-1 bg-[hsl(var(--color-card))] border border-primary rounded-lg shadow-lg z-[110] min-w-[140px] overflow-hidden"
                 variants={dropdownMenu}
                 initial="hidden"
                 animate="visible"
@@ -284,7 +286,7 @@ export function InvoiceRowMobile({
   return (
     <div
       className={cn(
-        'rounded-lg border border-primary p-3 mb-2 transition-all cursor-pointer',
+        'invoice-row-mobile rounded-lg border border-primary p-3 mb-2 transition-all cursor-pointer',
         'hover:bg-primary/5 active:bg-primary/10',
         selected && 'bg-primary/5'
       )}
