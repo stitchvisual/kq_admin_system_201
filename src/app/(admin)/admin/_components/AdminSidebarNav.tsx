@@ -47,7 +47,7 @@ function SidebarNavItem({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -6 }}
             transition={{ duration: 0.15, ease: tooltipEase }}
-            className="absolute left-full ml-3 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap z-50 pointer-events-none"
+            className="absolute left-full ml-3 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap z-[10010] pointer-events-none"
             style={{
               background: colors.heading,
               color: colors.card,
