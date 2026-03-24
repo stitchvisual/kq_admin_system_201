@@ -282,6 +282,7 @@ function SendEmailButton({
         onClick={onClick}
         disabled={loading}
         className={cn(
+          'px-4 shrink-0',
           hasBeenSent &&
             'border-[hsl(130_13%_75%)] text-[hsl(130_13%_35%)] hover:bg-[hsl(130_13%_95%)] hover:border-[hsl(130_13%_65%)]'
         )}
