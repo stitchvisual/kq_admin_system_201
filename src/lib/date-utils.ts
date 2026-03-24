@@ -79,51 +79,6 @@ export function formatHHmmAU(hhmm: string): string {
   return d.toLocaleTimeString('en-AU', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-/** True if "HH:mm" is on a 15-minute grid (booking dropdowns). */
-export function isQuarterHourHHmm(hhmm: string): boolean {
-  const [hs, ms] = hhmm.split(':');
-  const h = Number(hs);
-  const m = Number(ms);
-  if (Number.isNaN(h) || Number.isNaN(m) || hs === undefined || ms === undefined) return false;
-  if (h < 0 || h > 23) return false;
-  return m % 15 === 0;
-}
-
-let quarterHourTimeOptionsCache: { value: string; label: string }[] | null = null;
-
-/** All times in 15-minute steps (00:00–23:45) for booking selects. */
-export function getQuarterHourTimeOptions(): { value: string; label: string }[] {
-  if (quarterHourTimeOptionsCache) return quarterHourTimeOptionsCache;
-  const out: { value: string; label: string }[] = [];
-  for (let hour = 0; hour < 24; hour++) {
-    for (const minute of [0, 15, 30, 45] as const) {
-      const value = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      out.push({ value, label: formatHHmmAU(value) });
-    }
-  }
-  quarterHourTimeOptionsCache = out;
-  return out;
-}
-
-/** Typical session start times (hourly), 7am–6pm. */
-export const COMMON_SESSION_START_TIMES_HHMM = [
-  '07:00',
-  '08:00',
-  '09:00',
-  '10:00',
-  '11:00',
-  '12:00',
-  '13:00',
-  '14:00',
-  '15:00',
-  '16:00',
-  '17:00',
-  '18:00',
-] as const;
-
-/** Typical overnight handover / wake-up end times. */
-export const COMMON_MORNING_END_TIMES_HHMM = ['06:00', '07:00', '08:00', '09:00', '10:00'] as const;
-
 /**
  * Returns array of hours from start to end (inclusive)
  */

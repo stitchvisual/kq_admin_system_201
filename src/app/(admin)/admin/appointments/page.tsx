@@ -1341,8 +1341,7 @@ function FormPanel({
               label="Start time"
               value={formData.start_time}
               onChange={start_time => setFormData({ ...formData, start_time })}
-              quickPicks="session-starts"
-              selectClassName={inputClasses}
+              className={inputClasses}
             />
             <FormField label="Duration">
               <select
@@ -1406,8 +1405,7 @@ function FormPanel({
                 label="End time"
                 value={formData.end_time}
                 onChange={end_time => setFormData({ ...formData, end_time })}
-                quickPicks={formData.duration === 'overnight' ? 'morning-end' : 'session-starts'}
-                selectClassName={inputClasses}
+                className={inputClasses}
               />
             </>
           )}

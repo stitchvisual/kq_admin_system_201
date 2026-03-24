@@ -1,84 +1,45 @@
 'use client';
 
-import { useMemo } from 'react';
-import { FilterChip } from '@/components/ui/filter-chip';
-import {
-  getQuarterHourTimeOptions,
-  formatHHmmAU,
-  isQuarterHourHHmm,
-  COMMON_SESSION_START_TIMES_HHMM,
-  COMMON_MORNING_END_TIMES_HHMM,
-  formatTimeRange,
-  formatDuration,
-} from '@/lib/date-utils';
+import { formatHHmmAU, formatTimeRange, formatDuration } from '@/lib/date-utils';
 import { cn } from '@/lib/utils';
-
-export type BookingTimeQuickPicks = 'session-starts' | 'morning-end' | false;
 
 type BookingTimeSelectProps = {
   label: string;
   value: string;
   onChange: (hhmm: string) => void;
-  quickPicks?: BookingTimeQuickPicks;
-  selectClassName: string;
+  /** Matches other form fields (border, radius, etc.) */
+  className: string;
   required?: boolean;
 };
 
+/**
+ * Native time input — uses the OS/browser time picker (fast on mobile, keyboard-friendly on desktop).
+ * step=60 allows any minute; shows a plain-language line under the field when a time is set.
+ */
 export function BookingTimeSelect({
   label,
   value,
   onChange,
-  quickPicks = false,
-  selectClassName,
+  className,
   required = true,
 }: BookingTimeSelectProps) {
-  const options = useMemo(() => getQuarterHourTimeOptions(), []);
-  const onGrid = isQuarterHourHHmm(value);
-
-  const picks = useMemo(() => {
-    if (quickPicks === 'session-starts') return [...COMMON_SESSION_START_TIMES_HHMM];
-    if (quickPicks === 'morning-end') return [...COMMON_MORNING_END_TIMES_HHMM];
-    return [];
-  }, [quickPicks]);
-
   return (
     <div>
       <p className="mb-1.5 text-[10.5px] font-bold tracking-[0.06em] uppercase text-secondary">
         {label}
       </p>
-      {picks.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-2">
-          {picks.map(t => (
-            <FilterChip
-              key={t}
-              type="button"
-              size="sm"
-              active={value === t}
-              className="h-7 min-w-[3.25rem] px-2 text-[11px] font-semibold tabular-nums"
-              onClick={() => onChange(t)}
-            >
-              {formatHHmmAU(t)}
-            </FilterChip>
-          ))}
-        </div>
-      )}
-      <select
-        aria-label={label}
+      <input
+        type="time"
+        step={60}
         value={value}
         onChange={e => onChange(e.target.value)}
         required={required}
-        className={cn(selectClassName, 'cursor-pointer')}
-      >
-        {!value ? <option value="">Select time…</option> : null}
-        {!onGrid && value ? (
-          <option value={value}>{formatHHmmAU(value)} (exact)</option>
-        ) : null}
-        {options.map(o => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+        aria-label={label}
+        className={cn(className, 'min-h-10 tabular-nums')}
+      />
+      {value ? (
+        <p className="mt-1 text-[11px] text-muted-foreground tabular-nums">{formatHHmmAU(value)}</p>
+      ) : null}
     </div>
   );
 }
