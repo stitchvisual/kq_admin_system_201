@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fadeUp, dropdownMenu } from '@/lib/motion/variants';
 import {
@@ -60,6 +61,14 @@ function getDaysOverdue(dueDate: Date | string): number {
   return Math.floor(diffTime / (1000 * 60 * 60 * 24));
 }
 
+function useBodyPortalTarget(): HTMLElement | null {
+  const [el, setEl] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setEl(document.body);
+  }, []);
+  return el;
+}
+
 export function InvoiceRow({
   invoice,
   selected,
@@ -73,16 +82,40 @@ export function InvoiceRow({
   actionLoading,
 }: InvoiceRowProps) {
   const [showOverflow, setShowOverflow] = useState(false);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  const portalTarget = useBodyPortalTarget();
   const overdue = isOverdue(invoice);
   const daysOverdue = overdue ? getDaysOverdue(invoice.due_date) : 0;
   const item_count = invoice.items?.length ?? 0;
+
+  const updateMenuPosition = () => {
+    const btn = moreBtnRef.current;
+    if (!btn) return;
+    const r = btn.getBoundingClientRect();
+    setMenuPos({
+      top: r.bottom + 4,
+      right: Math.max(8, window.innerWidth - r.right),
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!showOverflow) return;
+    updateMenuPosition();
+    const onScrollOrResize = () => updateMenuPosition();
+    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    return () => {
+      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+    };
+  }, [showOverflow]);
 
   return (
     <motion.div
       className={cn(
         'invoice-row grid grid-cols-[40px_120px_1fr_100px_100px_120px_100px_140px] gap-4 px-4 py-[0.85rem]',
-        'border-b border-primary/80 items-center cursor-pointer relative',
-        showOverflow && 'z-[100]'
+        'border-b border-primary/80 items-center cursor-pointer'
       )}
       variants={fadeUp}
       whileHover={{ backgroundColor: 'hsl(130 13% 50% / 0.04)' }}
@@ -201,58 +234,79 @@ export function InvoiceRow({
         </button>
         
         <button
-          onClick={(e) => {
+          ref={moreBtnRef}
+          type="button"
+          aria-expanded={showOverflow}
+          aria-haspopup="menu"
+          onClick={e => {
             e.stopPropagation();
-            setShowOverflow(!showOverflow);
+            if (!showOverflow && moreBtnRef.current) {
+              const r = moreBtnRef.current.getBoundingClientRect();
+              setMenuPos({
+                top: r.bottom + 4,
+                right: Math.max(8, window.innerWidth - r.right),
+              });
+            }
+            setShowOverflow(v => !v);
           }}
           className="w-7 h-7 rounded-md border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex items-center justify-center text-[hsl(145_15%_35%)] hover:bg-[hsl(42_26%_87%)] transition-colors"
         >
           <MoreHorizontal size={14} />
         </button>
 
-        <AnimatePresence>
-          {showOverflow && (
-            <>
-              <div
-                key="overflow-backdrop"
-                className="fixed inset-0 z-[90]"
-                aria-hidden
-                onClick={() => setShowOverflow(false)}
-              />
-              <motion.div
-                key="overflow-menu"
-                className="absolute right-0 top-full mt-1 bg-[hsl(var(--color-card))] border border-primary rounded-lg shadow-lg z-[110] min-w-[140px] overflow-hidden"
-                variants={dropdownMenu}
-                initial="hidden"
-                animate="visible"
-                exit="exit"
-              >
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowOverflow(false);
-                    onClick();
-                  }}
-                  className="w-full py-2.5 px-3.5 bg-[hsl(42_26%_92%)] text-[12.5px] text-foreground text-left flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)] transition-colors"
-                >
-                  <Eye size={13} /> View Details
-                </button>
-                {invoice.status !== 'paid' && invoice.status !== 'cancelled' && onCancel && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowOverflow(false);
-                      onCancel();
-                    }}
-                    className="w-full py-2.5 px-3.5 bg-[hsl(42_26%_92%)] text-red-600 text-left flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)] transition-colors"
+        {portalTarget &&
+          createPortal(
+            <AnimatePresence>
+              {showOverflow && (
+                <>
+                  <div
+                    key="overflow-backdrop"
+                    className="fixed inset-0 z-[10000] bg-transparent"
+                    aria-hidden
+                    onClick={() => setShowOverflow(false)}
+                  />
+                  <motion.div
+                    key="overflow-menu"
+                    role="menu"
+                    className="fixed z-[10001] min-w-[160px] overflow-hidden rounded-lg border border-primary bg-[hsl(var(--color-card))] shadow-xl"
+                    style={{ top: menuPos.top, right: menuPos.right }}
+                    variants={dropdownMenu}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
                   >
-                    <XCircle size={13} /> Cancel
-                  </button>
-                )}
-              </motion.div>
-            </>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setShowOverflow(false);
+                        onClick();
+                      }}
+                      className="flex w-full items-center gap-1.5 bg-[hsl(42_26%_92%)] px-3.5 py-2.5 text-left text-[12.5px] text-foreground transition-colors hover:bg-[hsl(42_26%_87%)]"
+                    >
+                      <Eye size={13} /> View Details
+                    </button>
+                    {invoice.status !== 'paid' && invoice.status !== 'cancelled' && onCancel && (
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={e => {
+                          e.stopPropagation();
+                          setShowOverflow(false);
+                          onCancel();
+                        }}
+                        className="flex w-full items-center gap-1.5 bg-[hsl(42_26%_92%)] px-3.5 py-2.5 text-left text-red-600 transition-colors hover:bg-[hsl(42_26%_87%)]"
+                      >
+                        <XCircle size={13} /> Cancel
+                      </button>
+                    )}
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>,
+            portalTarget
           )}
-        </AnimatePresence>
       </div>
     </motion.div>
   );
