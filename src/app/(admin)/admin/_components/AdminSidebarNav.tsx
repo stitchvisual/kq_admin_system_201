@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useLayoutEffect } from 'react';
 import Link from 'next/link';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutDashboard, Calendar, Users, FileText, CalendarDays } from 'lucide-react';
 import { colors, shadows, typography } from '@/styles/botanical';
@@ -23,43 +24,71 @@ function SidebarNavItem({
   item: (typeof navItems)[number];
 }) {
   const [tipOpen, setTipOpen] = useState(false);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const linkRef = useRef<HTMLAnchorElement>(null);
+
+  useLayoutEffect(() => {
+    if (!tipOpen || typeof document === 'undefined') return;
+    const el = linkRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setCoords({ top: rect.top + rect.height / 2, left: rect.right + 12 });
+    };
+    update();
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [tipOpen]);
 
   return (
-    <MotionLink
-      href={item.href}
-      className="sidebar-nav-link relative w-10 h-10 rounded-xl flex items-center justify-center"
-      aria-label={item.label}
-      onMouseEnter={() => setTipOpen(true)}
-      onMouseLeave={() => setTipOpen(false)}
-      onFocus={() => setTipOpen(true)}
-      onBlur={() => setTipOpen(false)}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.91 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 24 }}
-    >
-      <item.icon className="h-[18px] w-[18px]" aria-hidden />
-      <AnimatePresence>
-        {tipOpen && (
-          <motion.span
-            key="tooltip"
-            role="tooltip"
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -6 }}
-            transition={{ duration: 0.15, ease: tooltipEase }}
-            className="absolute left-full ml-3 px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap z-[10010] pointer-events-none"
-            style={{
-              background: colors.heading,
-              color: colors.card,
-              boxShadow: shadows.elevated,
-              fontFamily: typography.body,
-            }}
-          >
-            {item.label}
-          </motion.span>
+    <>
+      <MotionLink
+        ref={linkRef}
+        href={item.href}
+        className="sidebar-nav-link relative w-10 h-10 rounded-xl flex items-center justify-center"
+        aria-label={item.label}
+        onMouseEnter={() => setTipOpen(true)}
+        onMouseLeave={() => setTipOpen(false)}
+        onFocus={() => setTipOpen(true)}
+        onBlur={() => setTipOpen(false)}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.91 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 24 }}
+      >
+        <item.icon className="h-[18px] w-[18px]" aria-hidden />
+      </MotionLink>
+      {typeof document !== 'undefined' &&
+        createPortal(
+          <AnimatePresence>
+            {tipOpen && (
+              <motion.span
+                key="tooltip"
+                role="tooltip"
+                initial={{ opacity: 0, x: -6 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -6 }}
+                transition={{ duration: 0.15, ease: tooltipEase }}
+                className="fixed px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap z-[10010] pointer-events-none -translate-y-1/2"
+                style={{
+                  top: coords.top,
+                  left: coords.left,
+                  background: colors.heading,
+                  color: colors.card,
+                  boxShadow: shadows.elevated,
+                  fontFamily: typography.body,
+                }}
+              >
+                {item.label}
+              </motion.span>
+            )}
+          </AnimatePresence>,
+          document.body
         )}
-      </AnimatePresence>
-    </MotionLink>
+    </>
   );
 }
 
