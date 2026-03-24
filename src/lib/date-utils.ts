@@ -123,9 +123,17 @@ export function formatHourLabel(hour: number): string {
 
 /**
  * Format time range for display (e.g., "9:00am - 10:30am")
+ * For overnight/multi-day: "Fri 6:00pm - Sat 8:00am"
  */
 export function formatTimeRange(start: Date, end: Date): string {
-  return `${formatTime(start)} - ${formatTime(end)}`;
+  const startDay = formatDateForInput(start);
+  const endDay = formatDateForInput(end);
+  if (startDay !== endDay) {
+    const startLabel = start.toLocaleDateString('en-AU', { weekday: 'short' });
+    const endLabel = end.toLocaleDateString('en-AU', { weekday: 'short' });
+    return `${startLabel} ${formatTime(start)} – ${endLabel} ${formatTime(end)}`;
+  }
+  return `${formatTime(start)} – ${formatTime(end)}`;
 }
 
 function formatTime(date: Date): string {

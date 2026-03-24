@@ -36,6 +36,9 @@ tsconfig.tsbuildinfo
 # Archives
 *.zip
 
+# Local git worktree copies (not submodules)
+.worktrees/
+
 # Vercel
 .vercel
 

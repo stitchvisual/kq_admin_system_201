@@ -314,6 +314,9 @@ export const appointmentsRepository = {
     const dayStart = getDayStart(today);
     const dayEnd = getDayEnd(today);
 
+    // Include appointments that overlap with today:
+    // - Start today and end today or later
+    // - Start before today and end during/after today (overnight sleepovers)
     const results = await db
       .select({
         id: appointments.id,
@@ -341,8 +344,8 @@ export const appointmentsRepository = {
       .where(
         and(
           isNull(appointments.deleted_at),
-          gte(appointments.starts_at, dayStart),
-          lte(appointments.starts_at, dayEnd)
+          lt(appointments.starts_at, dayEnd),
+          gt(appointments.ends_at, dayStart)
         )
       )
       .orderBy(appointments.starts_at);

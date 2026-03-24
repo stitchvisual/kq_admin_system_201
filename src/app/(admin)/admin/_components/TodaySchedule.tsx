@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Clock, CheckCircle, Loader2, Users } from 'lucide-react';
 import { fadeUp, staggerContainer } from '@/lib/motion/variants';
 import { toast } from 'sonner';
+import { formatTimeRange } from '@/lib/date-utils';
 import { colors, shadows, radii, typography } from '@/styles/botanical';
 
 interface Participant {
@@ -27,14 +28,6 @@ interface Appointment {
 interface TodayScheduleProps {
   appointments: Appointment[];
   onComplete?: () => void;
-}
-
-function formatTime(date: Date): string {
-  return date.toLocaleTimeString('en-AU', {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-  });
 }
 
 export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) {
@@ -186,7 +179,7 @@ export function TodaySchedule({ appointments, onComplete }: TodayScheduleProps) 
                     )}
                   </div>
                   <div style={{ fontSize: 'var(--font-size-meta)', color: colors.secondary }}>
-                    {formatTime(start)} - {formatTime(end)}
+                    {formatTimeRange(start, end)}
                   </div>
                   {appointment.is_group && participantNames && (
                     <div style={{ fontSize: '0.75rem', color: colors.muted, marginTop: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', wordBreak: 'break-word' }}>

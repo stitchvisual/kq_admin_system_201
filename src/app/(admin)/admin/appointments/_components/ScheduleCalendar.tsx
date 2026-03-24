@@ -32,7 +32,7 @@ export interface ScheduleCalendarProps {
   loading?: boolean;
   targetDate?: Date; // Add this prop - when changed, calendar navigates to this date
   onAppointmentClick: (appointment: AppointmentWithClient) => void;
-  onSlotSelect: (date: Date, startTime: string, endTime: string) => void;
+  onSlotSelect: (date: Date, startTime: string, endTime: string, endDate?: Date) => void;
   onAppointmentDrop: (appointmentId: string, newStart: Date, newEnd: Date) => void;
   onAppointmentResize: (appointmentId: string, newStart: Date, newEnd: Date) => void;
   onDateRangeChange: (start: Date, end: Date) => void;
@@ -457,7 +457,7 @@ export default function ScheduleCalendar({
         minute: '2-digit',
         hour12: false,
       });
-      onSlotSelect(info.start, startTime, endTime);
+      onSlotSelect(info.start, startTime, endTime, info.end);
     },
     [onSlotSelect],
   );
@@ -547,9 +547,9 @@ export default function ScheduleCalendar({
           center: 'title',
           right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek',
         }}
-        // --- Time grid: Google Cal-style compact slots ---
-        slotMinTime="06:00:00"
-        slotMaxTime="20:00:00"
+        // --- Time grid: extend range for overnight sleepover appointments ---
+        slotMinTime="00:00:00"
+        slotMaxTime="24:00:00"
         slotDuration="00:15:00" // 15-min snap precision (like Google Cal)
         slotLabelInterval="01:00:00" // Show label every hour
         slotLabelFormat={{

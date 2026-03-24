@@ -1,7 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import useSWR from 'swr';
 import {
   ChevronLeft,
   ChevronRight,
@@ -31,7 +33,7 @@ import type { AppointmentWithClient } from '@/repositories/appointments.reposito
 import type { Client } from '@/db/schema/clients';
 import type { NdisPricing } from '@/db/schema/ndis_pricing';
 import { colors, getClientPalette, GROUP_PALETTE } from '@/styles/botanical';
-import ScheduleCalendar from './_components/ScheduleCalendar';
+import { apiDataFetcher } from '@/lib/api-swr-fetcher';
 import {
   SheetHandle,
   PanelHeader,
@@ -43,6 +45,19 @@ import {
   DangerBtn,
 } from '@/components/panels';
 import { cn } from '@/lib/utils';
+
+function CalendarSkeleton() {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-muted/30 text-sm text-muted-foreground animate-pulse">
+      Loading calendar…
+    </div>
+  );
+}
+
+const ScheduleCalendar = dynamic(() => import('./_components/ScheduleCalendar'), {
+  ssr: false,
+  loading: () => <CalendarSkeleton />,
+});
 
 type PanelMode = 'empty' | 'view' | 'new' | 'edit' | 'deleteConfirm' | 'complete';
 
@@ -68,10 +83,33 @@ function getMiniCalendarDays(year: number, month: number) {
 export default function AppointmentsPage() {
   const [weekStart, setWeekStart] = useState<Date>(() => getWeekStart(new Date()));
 
-  const [appointments, setAppointments] = useState<AppointmentWithClient[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [rateCodes, setRateCodes] = useState<NdisPricing[]>([]);
-  const [loading, setLoading] = useState(true);
+  const appointmentsKey = `/api/appointments?weekStart=${formatDateForInput(weekStart)}`;
+
+  const {
+    data: appointments = [],
+    isLoading: loading,
+    mutate: mutateAppointments,
+  } = useSWR(
+    appointmentsKey,
+    (url: string) => apiDataFetcher<AppointmentWithClient[]>(url),
+    {
+      revalidateOnFocus: false,
+      onError: () => toast.error('Failed to load appointments'),
+    },
+  );
+
+  const { data: clients = [] } = useSWR(
+    '/api/clients?limit=100',
+    (url: string) => apiDataFetcher<Client[]>(url),
+    { revalidateOnFocus: false },
+  );
+
+  const { data: rateCodes = [] } = useSWR(
+    '/api/ndis-pricing',
+    (url: string) => apiDataFetcher<NdisPricing[]>(url),
+    { revalidateOnFocus: false },
+  );
+
   const [selectedAppointment, setSelectedAppointment] = useState<AppointmentWithClient | null>(
     null,
   );
@@ -95,6 +133,7 @@ export default function AppointmentsPage() {
     start_time: '',
     duration: '60',
     end_time: '',
+    end_date: '', // For overnight sleepovers: end date when different from start date
     notes: '',
     is_group: false,
     rate_code: '',
@@ -116,59 +155,6 @@ export default function AppointmentsPage() {
     return weekDays.some(
       wd => wd.getDate() === d && wd.getMonth() === month && wd.getFullYear() === year,
     );
-  };
-
-  // ============================================================================
-  // DATA FETCHING
-  // ============================================================================
-
-  useEffect(() => {
-    fetchAppointments();
-  }, [weekStart]);
-  useEffect(() => {
-    fetchClients();
-  }, []);
-  useEffect(() => {
-    fetchRateCodes();
-  }, []);
-
-  const fetchAppointments = async () => {
-    setLoading(true);
-    try {
-      const weekStartStr = formatDateForInput(weekStart);
-      const res = await fetch(`/api/appointments?weekStart=${weekStartStr}`);
-      const data = await res.json();
-      if (data.success) {
-        setAppointments(data.data);
-      } else if (!res.ok) {
-        toast.error(data?.error?.message || `Failed to load appointments (${res.status})`);
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error('Failed to load appointments');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchClients = async () => {
-    try {
-      const res = await fetch('/api/clients?limit=100');
-      const data = await res.json();
-      if (data.success) setClients(data.data);
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const fetchRateCodes = async () => {
-    try {
-      const res = await fetch('/api/ndis-pricing');
-      const data = await res.json();
-      if (data.success) setRateCodes(data.data);
-    } catch (e) {
-      console.error(e);
-    }
   };
 
   // ============================================================================
@@ -196,6 +182,7 @@ export default function AppointmentsPage() {
         start_time: '',
         duration: '60',
         end_time: '',
+        end_date: '',
         notes: '',
         is_group: false,
         rate_code: '',
@@ -215,6 +202,7 @@ export default function AppointmentsPage() {
       start_time: `${hour.toString().padStart(2, '0')}:00`,
       duration: '60',
       end_time: `${(hour + 1).toString().padStart(2, '0')}:00`,
+      end_date: '',
       notes: '',
       is_group: false,
       rate_code: '',
@@ -231,12 +219,18 @@ export default function AppointmentsPage() {
 
   const openEditMode = () => {
     if (!selectedAppointment) return;
+    const startDate = new Date(selectedAppointment.starts_at);
+    const endDate = new Date(selectedAppointment.ends_at);
+    const startDateStr = formatDateForInput(startDate);
+    const endDateStr = formatDateForInput(endDate);
+    const isOvernight = startDateStr !== endDateStr;
     setFormData({
       client_id: selectedAppointment.client_id || '',
-      date: formatDateForInput(new Date(selectedAppointment.starts_at)),
-      start_time: formatTimeForInput(new Date(selectedAppointment.starts_at)),
-      duration: 'custom',
-      end_time: formatTimeForInput(new Date(selectedAppointment.ends_at)),
+      date: startDateStr,
+      start_time: formatTimeForInput(startDate),
+      duration: isOvernight ? 'overnight' : 'custom',
+      end_time: formatTimeForInput(endDate),
+      end_date: isOvernight ? endDateStr : '',
       notes: selectedAppointment.notes || '',
       is_group: selectedAppointment.is_group || false,
       rate_code: selectedAppointment.rate_code || '',
@@ -251,14 +245,17 @@ export default function AppointmentsPage() {
   // ============================================================================
 
   // FullCalendar: slot selection (creates new appointment)
-  const handleSlotSelect = (date: Date, startTime: string, endTime: string) => {
+  const handleSlotSelect = (date: Date, startTime: string, endTime: string, endDate?: Date) => {
     setSelectedAppointment(null);
+    const dateStr = formatDateForInput(date);
+    const isOvernight = endDate && formatDateForInput(endDate) !== dateStr;
     setFormData({
       client_id: '',
       date: formatDateForInput(date),
       start_time: startTime,
-      duration: 'custom',
+      duration: isOvernight ? 'overnight' : 'custom',
       end_time: endTime,
+      end_date: isOvernight ? formatDateForInput(endDate!) : '',
       notes: '',
       is_group: false,
       rate_code: '',
@@ -270,22 +267,15 @@ export default function AppointmentsPage() {
 
   // FullCalendar: drag-drop reschedule with optimistic update
   const handleAppointmentDrop = async (appointmentId: string, newStart: Date, newEnd: Date) => {
-    // OPTIMISTIC UPDATE: Snapshot current state and apply change immediately
     const previousAppointments = appointments;
 
-    // Update the appointment locally before the API call (use Date objects to match type)
-    setAppointments(prev =>
-      prev.map(appt => {
-        if (appt.id === appointmentId) {
-          return {
-            ...appt,
-            starts_at: newStart,
-            ends_at: newEnd,
-          };
-        }
-        return appt;
-      }),
-    );
+    const optimistic = appointments.map(appt => {
+      if (appt.id === appointmentId) {
+        return { ...appt, starts_at: newStart, ends_at: newEnd };
+      }
+      return appt;
+    });
+    void mutateAppointments(optimistic, { revalidate: false });
 
     try {
       const res = await fetch(`/api/appointments/${appointmentId}`, {
@@ -299,17 +289,14 @@ export default function AppointmentsPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Session rescheduled');
-        // Update with the server response to ensure consistency
-        setAppointments(prev => prev.map(appt => (appt.id === appointmentId ? data.data : appt)));
+        await mutateAppointments();
       } else {
         toast.error(data.message || 'Failed to reschedule');
-        // ROLLBACK: Restore previous state on error
-        setAppointments(previousAppointments);
+        void mutateAppointments(previousAppointments, { revalidate: false });
       }
     } catch {
       toast.error('Failed to reschedule');
-      // ROLLBACK: Restore previous state on error
-      setAppointments(previousAppointments);
+      void mutateAppointments(previousAppointments, { revalidate: false });
     }
   };
 
@@ -335,7 +322,10 @@ export default function AppointmentsPage() {
     setSaving(true);
     try {
       const startDate = new Date(`${formData.date}T${formData.start_time}:00`);
-      const endDate = new Date(`${formData.date}T${formData.end_time}:00`);
+      const endDateStr = formData.duration === 'overnight' && formData.end_date
+        ? formData.end_date
+        : formData.date;
+      const endDate = new Date(`${endDateStr}T${formData.end_time}:00`);
 
       // Build payload based on session type
       const payload = formData.is_group
@@ -369,7 +359,7 @@ export default function AppointmentsPage() {
       const data = await res.json();
       if (data.success) {
         toast.success(panelMode === 'edit' ? 'Session rescheduled' : 'Session booked');
-        await fetchAppointments();
+        await mutateAppointments();
         if (selectedAppointment) {
           setSelectedAppointment(data.data);
           setPanelMode('view');
@@ -394,7 +384,7 @@ export default function AppointmentsPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Appointment cancelled');
-        await fetchAppointments();
+        await mutateAppointments();
         closePanel();
       } else {
         toast.error(data.message || 'Failed to cancel');
@@ -418,7 +408,7 @@ export default function AppointmentsPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Session completed');
-        await fetchAppointments();
+        await mutateAppointments();
         setSelectedAppointment(data.data);
         setPanelMode('view');
       } else {
@@ -443,7 +433,7 @@ export default function AppointmentsPage() {
       const data = await res.json();
       if (data.success) {
         toast.success('Appointment confirmed');
-        await fetchAppointments();
+        await mutateAppointments();
         setSelectedAppointment(data.data);
         setPanelMode('view');
       } else {
@@ -1330,14 +1320,25 @@ function FormPanel({
                 onChange={e => {
                   const dur = e.target.value;
                   let end_time = formData.end_time;
-                  if (dur !== 'custom') {
+                  let end_date = formData.end_date;
+                  if (dur === 'overnight') {
+                    // Default: end next day at 8am
+                    const start = new Date(`${formData.date}T${formData.start_time}:00`);
+                    const nextDay = new Date(start);
+                    nextDay.setDate(nextDay.getDate() + 1);
+                    end_date = formatDateForInput(nextDay);
+                    end_time = '08:00';
+                  } else if (dur !== 'custom') {
                     const [h, m] = formData.start_time.split(':').map(Number);
                     const total = h * 60 + m + parseInt(dur);
-                    end_time = `${Math.floor(total / 60)
-                      .toString()
-                      .padStart(2, '0')}:${(total % 60).toString().padStart(2, '0')}`;
+                    const endH = Math.floor(total / 60) % 24;
+                    const endM = total % 60;
+                    end_time = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+                    end_date = '';
+                  } else {
+                    end_date = '';
                   }
-                  setFormData({ ...formData, duration: dur, end_time });
+                  setFormData({ ...formData, duration: dur, end_time, end_date });
                 }}
                 className={cn(inputClasses, 'cursor-pointer')}
               >
@@ -1345,21 +1346,36 @@ function FormPanel({
                 <option value="60">1 hour</option>
                 <option value="90">1.5 hours</option>
                 <option value="120">2 hours</option>
+                <option value="overnight">Overnight sleepover</option>
                 <option value="custom">Custom</option>
               </select>
             </FormField>
           </div>
 
-          {formData.duration === 'custom' && (
-            <FormField label="End time">
-              <input
-                type="time"
-                value={formData.end_time}
-                onChange={e => setFormData({ ...formData, end_time: e.target.value })}
-                required
-                className={inputClasses}
-              />
-            </FormField>
+          {(formData.duration === 'custom' || formData.duration === 'overnight') && (
+            <>
+              {formData.duration === 'overnight' && (
+                <FormField label="End date">
+                  <input
+                    type="date"
+                    value={formData.end_date}
+                    onChange={e => setFormData({ ...formData, end_date: e.target.value })}
+                    required
+                    min={formData.date}
+                    className={inputClasses}
+                  />
+                </FormField>
+              )}
+              <FormField label="End time">
+                <input
+                  type="time"
+                  value={formData.end_time}
+                  onChange={e => setFormData({ ...formData, end_time: e.target.value })}
+                  required
+                  className={inputClasses}
+                />
+              </FormField>
+            </>
           )}
 
           <FormField label="Status">
