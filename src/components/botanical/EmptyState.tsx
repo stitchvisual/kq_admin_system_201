@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Users, FileText, Send, CheckCircle2, DollarSign, Ban, FileEdit } from 'lucide-react';
+import { Users, FileText, Send, CheckCircle2, DollarSign, Ban, FileEdit, Calendar } from 'lucide-react';
 import { colors, typography } from '@/styles/botanical';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -147,6 +147,18 @@ export function EmptyInvoices({
       icon={icon}
       title={title}
       description={description}
+    />
+  );
+}
+
+export function EmptyEvents({ onAddEvent }: { onAddEvent?: () => void }) {
+  return (
+    <EmptyState
+      icon={<Calendar size={48} />}
+      title="No events yet"
+      description="Create your first event to start managing community gatherings, workshops, and sessions."
+      actionLabel="Add Event"
+      onAction={onAddEvent}
     />
   );
 }

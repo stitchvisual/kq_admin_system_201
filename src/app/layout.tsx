@@ -1,20 +1,27 @@
 import type { Metadata } from "next";
-import { Playfair_Display, Source_Sans_3 } from "next/font/google";
+import { Playfair_Display, Source_Sans_3, Roboto } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 
-const playfairDisplay = Playfair_Display({
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
-  variable: "--font-heading",
-  display: "swap",
   weight: ["400", "500", "600", "700"],
+  display: "swap",
 });
 
-const sourceSans3 = Source_Sans_3({
+const sourceSans = Source_Sans_3({
+  variable: "--font-source-sans",
   subsets: ["latin"],
-  variable: "--font-body",
-  display: "swap",
   weight: ["300", "400", "500", "600"],
+  display: "swap",
+});
+
+const roboto = Roboto({
+  variable: "--font-roboto",
+  subsets: ["latin"],
+  weight: ["100", "300", "400"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
@@ -28,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${playfairDisplay.variable} ${sourceSans3.variable}`} style={{ colorScheme: 'light' }} suppressHydrationWarning>
+    <html lang="en" className={`${playfair.variable} ${sourceSans.variable} ${roboto.variable}`} style={{ colorScheme: 'light' }} suppressHydrationWarning>
       <body className="font-body antialiased">
         <ThemeProvider
           attribute="class"

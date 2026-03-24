@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import useSWR from 'swr';
 import { Plus, Search, Leaf, Mail, Phone, UserCheck, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useMobilePanel } from '@/context/MobilePanelContext';
 import { toast } from 'sonner';
@@ -14,7 +15,8 @@ import { SkeletonClientDetail } from '@/components/ui/enhanced-skeleton';
 import type { Client } from '@/db/schema/clients';
 import type { NdisPricing } from '@/db/schema/ndis_pricing';
 import { colors } from '@/styles/botanical';
-import { EmptyClients, DataTable, DataTableHeaderLabel } from '@/components/botanical';
+import { EmptyClients } from '@/components/botanical/EmptyState';
+import { DataTable, DataTableHeaderLabel } from '@/components/botanical/DataTable';
 import { cn } from '@/lib/utils';
 
 type PanelMode = 'empty' | 'view' | 'new' | 'edit' | 'deleteConfirm';
@@ -100,15 +102,38 @@ const fallbackPricingCodes: NdisPricing[] = [
   },
 ];
 
+async function fetchClientsPage(
+  url: string,
+): Promise<{ clients: Client[]; totalPages: number }> {
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data.success) {
+    throw new Error(data.error?.message ?? 'Failed to load clients');
+  }
+  return {
+    clients: data.data,
+    totalPages: data.pagination?.totalPages ?? 1,
+  };
+}
+
+async function fetchNdisPricingForClients(url: string): Promise<NdisPricing[]> {
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.success && data.data && data.data.length > 0) {
+      return data.data.filter((code: NdisPricing) => code.category !== 'Transport');
+    }
+  } catch {
+    /* use fallback below */
+  }
+  return fallbackPricingCodes.filter((code: NdisPricing) => code.category !== 'Transport');
+}
+
 export default function ClientsPage() {
   const { setOpen: setMobilePanelOpen } = useMobilePanel();
-  const [clients, setClients] = useState<Client[]>([]);
-  const [pricingCodes, setPricingCodes] = useState<NdisPricing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingPricingCodes, setLoadingPricingCodes] = useState(true);
-  const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [panelMode, setPanelMode] = useState<PanelMode>('empty');
   const [panelVisible, setPanelVisible] = useState(false);
   const [panelClosing, setPanelClosing] = useState(false);
@@ -132,62 +157,35 @@ export default function ClientsPage() {
   });
 
   useEffect(() => {
-    fetchClients();
-  }, [search, page]);
+    const t = window.setTimeout(() => setDebouncedSearch(searchInput), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   useEffect(() => {
-    fetchPricingCodes();
-  }, []);
+    setPage(1);
+  }, [debouncedSearch]);
 
-  const fetchPricingCodes = async () => {
-    setLoadingPricingCodes(true);
-    try {
-      const res = await fetch('/api/ndis-pricing');
-      const data = await res.json();
-      if (data.success && data.data && data.data.length > 0) {
-        // Filter out Transport codes
-        const filteredCodes = data.data.filter(
-          (code: NdisPricing) => code.category !== 'Transport',
-        );
-        setPricingCodes(filteredCodes);
-      } else {
-        // Use fallback data if database is empty or API fails
-        console.log('Using fallback NDIS pricing codes');
-        const filteredFallback = fallbackPricingCodes.filter(
-          (code: NdisPricing) => code.category !== 'Transport',
-        );
-        setPricingCodes(filteredFallback);
-      }
-    } catch (error) {
-      console.error('Failed to fetch pricing codes, using fallback:', error);
-      // Use fallback data on error
-      const filteredFallback = fallbackPricingCodes.filter(
-        (code: NdisPricing) => code.category !== 'Transport',
-      );
-      setPricingCodes(filteredFallback);
-    } finally {
-      setLoadingPricingCodes(false);
-    }
-  };
+  const clientsKey = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set('page', String(page));
+    if (debouncedSearch.trim()) params.set('search', debouncedSearch.trim());
+    return `/api/clients?${params}`;
+  }, [page, debouncedSearch]);
 
-  const fetchClients = async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      params.set('page', page.toString());
-      const res = await fetch(`/api/clients?${params}`);
-      const data = await res.json();
-      if (data.success) {
-        setClients(data.data);
-        setTotalPages(data.pagination?.totalPages || 1);
-      }
-    } catch (error) {
-      console.error('Failed to fetch clients:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: clientsPageData,
+    isLoading: loading,
+    mutate: mutateClients,
+  } = useSWR(clientsKey, fetchClientsPage, { revalidateOnFocus: false });
+
+  const clients = clientsPageData?.clients ?? [];
+  const totalPages = clientsPageData?.totalPages ?? 1;
+
+  const { data: pricingCodes = [], isLoading: loadingPricingCodes } = useSWR(
+    '/api/ndis-pricing',
+    fetchNdisPricingForClients,
+    { revalidateOnFocus: false },
+  );
 
   const openPanel = (mode: PanelMode) => {
     setPanelClosing(false);
@@ -295,7 +293,7 @@ export default function ClientsPage() {
 
       if (data.success) {
         toast.success(panelMode === 'edit' ? 'Client updated' : 'Client created');
-        await fetchClients();
+        await mutateClients();
         if (panelMode === 'edit') {
           const client = selectedClient;
           if (client) {
@@ -351,7 +349,7 @@ export default function ClientsPage() {
 
       if (data.success) {
         toast.success('Client deleted');
-        await fetchClients();
+        await mutateClients();
         closePanel();
       } else {
         toast.error(data.error?.message ?? 'Failed to delete client');
@@ -398,8 +396,8 @@ export default function ClientsPage() {
             <input
               type="text"
               placeholder="Search clients by name..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
+              value={searchInput}
+              onChange={e => setSearchInput(e.target.value)}
               className="w-full min-w-0 h-full bg-transparent border-0 py-0 pl-0 pr-1 text-sm text-foreground outline-none placeholder:text-muted-foreground"
             />
           </div>
@@ -441,7 +439,7 @@ export default function ClientsPage() {
                   <div
                     key={client.id}
                     onClick={() => handleClientClick(client)}
-                    className="grid w-full min-w-0 grid-cols-[1fr_200px_160px_120px_100px] gap-6 px-5 py-4 border-b border-primary/80 items-center cursor-pointer transition-all duration-120 hover:bg-primary/3"
+                    className="client-table-row grid w-full min-w-0 grid-cols-[1fr_200px_160px_120px_100px] gap-6 px-5 py-4 border-b border-primary/80 items-center cursor-pointer transition-all duration-120 hover:bg-primary/3"
                   >
                     {/* Mobile card layout */}
                     <div className="md:hidden flex flex-col gap-2 mb-3">

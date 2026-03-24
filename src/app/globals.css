@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../styles/fullcalendar-botanical.css";
+@import "../styles/marketing.css";
 
 @theme {
   --color-background: 42 26% 95%;
@@ -95,8 +96,8 @@
   --sheet-radius: 20px;
   --sheet-handle-color: hsl(37 18% 80%);
 
-  --font-heading: "Playfair Display", serif;
-  --font-body: "Source Sans 3", sans-serif;
+  --font-heading: var(--font-playfair);
+  --font-body: var(--font-source-sans);
 
   /* Type scale — semantic font-size tokens */
   --font-size-badge: 0.7rem;
@@ -775,4 +776,136 @@ html.theme-transitioning *::after {
 .thin-scrollbar::-webkit-scrollbar {
   width: 4px;
   height: 4px;
+}
+
+/* ============================================================================
+   MARKETING THEME — scoped under [data-theme="marketing"]
+   ============================================================================ */
+
+[data-theme="marketing"] {
+  --font-serif: var(--font-playfair);
+  --font-sans: var(--font-roboto);
+  --color-terracotta: #A85444;
+  --color-terracotta-mid: #D4AAA2;
+  --color-terracotta-low: #F0E2DE;
+  --color-peach: #DEB96A;
+  --color-peach-mid: #EFDCB5;
+  --color-peach-low: #FAF5E8;
+  --color-linen: #F4F1EC;
+  --color-alabaster: #E8E5E0;
+  --color-stone: #C8C3BC;
+  --color-coffee: #231510;
+  --color-coffee-mid: #5A4038;
+  --color-coffee-light: #9C8880;
+  --color-white: #FFFFFF;
+  --color-off-white: #FAFAF7;
+  --color-bg: var(--color-off-white);
+  --color-bg-surface: var(--color-white);
+  --color-bg-subtle: var(--color-linen);
+  --color-bg-dark: var(--color-coffee);
+  --color-text-primary: var(--color-coffee);
+  --color-text-secondary: var(--color-coffee-mid);
+  --color-text-tertiary: #705F58;
+  --color-text-inverse: var(--color-off-white);
+  --color-accent: var(--color-terracotta);
+  --color-accent-soft: var(--color-terracotta-low);
+  --color-border: var(--color-alabaster);
+  --color-border-subtle: rgba(35, 21, 16, 0.06);
+  --color-success-bg: #EDF8F2;
+  --color-success-border: #B5DFC9;
+  --color-success-text: #226445;
+  --color-warning-bg: #FFF8EA;
+  --color-warning-border: #F0DCAE;
+  --color-warning-text: #7D5A11;
+  --color-danger-bg: var(--color-terracotta-low);
+  --color-danger-border: var(--color-terracotta);
+  --color-danger-text: var(--color-terracotta);
+  --spacing-1: 0.25rem;
+  --spacing-2: 0.5rem;
+  --spacing-3: 0.75rem;
+  --spacing-4: 1rem;
+  --spacing-5: 1.5rem;
+  --spacing-6: 2rem;
+  --spacing-7: 2.5rem;
+  --spacing-8: 3rem;
+  --spacing-9: 4rem;
+  --spacing-10: 6rem;
+  --spacing-11: 8rem;
+  --spacing-12: 12rem;
+  --spacing-13: 16rem;
+  --max-w-xl: 1320px;
+  --gutter: clamp(1.5rem, 5vw, 4rem);
+  --radius-sm: 3px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+  --shadow-xs: 0 1px 4px rgba(35, 21, 16, 0.04);
+  --shadow-sm: 0 2px 12px rgba(35, 21, 16, 0.06);
+  --shadow-md: 0 8px 32px rgba(35, 21, 16, 0.07);
+  --shadow-lg: 0 16px 48px rgba(35, 21, 16, 0.08);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+  --animate-dur-fast: 120ms;
+  --animate-dur-base: 220ms;
+  --animate-dur-slow: 400ms;
+}
+
+body:has([data-theme="marketing"]) {
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-weight: 300;
+  line-height: 1.75;
+}
+
+[data-theme="marketing"] h1,
+[data-theme="marketing"] h2,
+[data-theme="marketing"] h3,
+[data-theme="marketing"] .display {
+  font-family: var(--font-serif);
+  color: var(--color-text-primary);
+}
+
+[data-theme="marketing"] h4,
+[data-theme="marketing"] .label,
+[data-theme="marketing"] .eyebrow {
+  font-family: var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+[data-theme="marketing"] :focus-visible {
+  outline: 3px solid var(--color-terracotta);
+  outline-offset: 2px;
+}
+
+[data-theme="marketing"] .skip-link {
+  position: absolute;
+  left: var(--spacing-4);
+  top: -9999px;
+  z-index: 300;
+  padding: var(--spacing-3) var(--spacing-4);
+  background-color: var(--color-coffee);
+  color: var(--color-off-white);
+  border-radius: var(--radius-sm);
+}
+
+[data-theme="marketing"] .skip-link:focus-visible {
+  top: var(--spacing-4);
+}
+
+/* Long lists: skip layout/paint for off-screen rows (see Vercel rendering perf guidance) */
+.invoice-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 52px;
+}
+
+.invoice-row-mobile {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 116px;
+}
+
+.client-table-row {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 72px;
 }

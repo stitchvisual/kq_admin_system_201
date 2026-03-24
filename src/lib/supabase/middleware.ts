@@ -40,7 +40,7 @@ export async function updateSession(request: NextRequest) {
   // Protect /admin routes
   if (request.nextUrl.pathname.startsWith("/admin") && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/auth";
     return NextResponse.redirect(url);
   }
 

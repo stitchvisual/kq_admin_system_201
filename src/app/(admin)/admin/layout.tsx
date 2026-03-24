@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutDashboard, Calendar, Users, FileText, LogOut } from "lucide-react";
+import { LayoutDashboard, Calendar, Users, FileText, LogOut, CalendarDays } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Toaster } from "@/components/ui/sonner";
@@ -14,6 +14,7 @@ const navItems = [
   { href: "/admin/appointments", label: "Schedule", icon: Calendar },
   { href: "/admin/clients", label: "Clients", icon: Users },
   { href: "/admin/invoices", label: "Invoices", icon: FileText },
+  { href: "/admin/events", label: "Events", icon: CalendarDays },
 ];
 
 export default async function AdminLayout({

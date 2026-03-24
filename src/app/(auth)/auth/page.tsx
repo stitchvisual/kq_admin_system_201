@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { fadeUp, staggerContainer } from "@/lib/motion/variants";
@@ -175,6 +176,14 @@ export default function LoginPage() {
           </motion.form>
           <p className="mt-6 text-center text-sm text-[hsl(145,15%,45%)]">
             Secure login for authorized administrators
+          </p>
+          <p className="mt-4 text-center">
+            <Link
+              href="/"
+              className="text-sm text-[hsl(145,15%,45%)] hover:text-[hsl(145,15%,35%)] underline underline-offset-2"
+            >
+              ← Back to main site
+            </Link>
           </p>
         </CardContent>
       </Card>

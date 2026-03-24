@@ -7,6 +7,16 @@ const nextConfig: NextConfig = {
   // loaded directly from node_modules at runtime instead.
   serverExternalPackages: ["@react-pdf/renderer"],
 
+  // Configure allowed image domains
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+      },
+    ],
+  },
+
   // Security headers for production
   async headers() {
     return [

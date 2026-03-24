@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutDashboard, Calendar, Users, FileText } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, FileText, CalendarDays } from 'lucide-react';
 import { colors, shadows, typography } from '@/styles/botanical';
 
 const MotionLink = motion(Link);
@@ -14,6 +14,7 @@ const navItems = [
   { href: '/admin/appointments', label: 'Schedule', icon: Calendar },
   { href: '/admin/clients', label: 'Clients', icon: Users },
   { href: '/admin/invoices', label: 'Invoices', icon: FileText },
+  { href: '/admin/events', label: 'Events', icon: CalendarDays },
 ] as const;
 
 function SidebarNavItem({
