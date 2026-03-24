@@ -29,6 +29,7 @@ import {
   formatTimeRange,
   formatDuration,
 } from '@/lib/date-utils';
+import { OVERNIGHT_SLEEPOVER_NDIS_CODE } from '@/lib/appointment-pricing';
 import type { AppointmentWithClient } from '@/repositories/appointments.repository';
 import type { Client } from '@/db/schema/clients';
 import type { NdisPricing } from '@/db/schema/ndis_pricing';
@@ -45,6 +46,7 @@ import {
   DangerBtn,
 } from '@/components/panels';
 import { cn } from '@/lib/utils';
+import { BookingTimeSelect, SessionTimePreview } from './_components/BookingTimeSelect';
 
 function CalendarSkeleton() {
   return (
@@ -1011,7 +1013,16 @@ function ViewPanel({
             <MetaRow label="Date" value={formattedDate} />
             <MetaRow label="Time" value={formattedTimeRange} />
             <MetaRow label="Duration" value={formattedDuration} />
-            {isGroup && appt.rate_code && <MetaRow label="Rate code" value={appt.rate_code} />}
+            {appt.rate_code && (
+              <MetaRow
+                label="Rate code"
+                value={
+                  appt.rate_code === OVERNIGHT_SLEEPOVER_NDIS_CODE
+                    ? `${appt.rate_code} (Night-Time Sleepover)`
+                    : appt.rate_code
+                }
+              />
+            )}
             {appt.invoiced && appt.invoice_ref && (
               <MetaRow label="Invoice" value={appt.invoice_ref} />
             )}
@@ -1206,7 +1217,17 @@ function FormPanel({
               </button>
               <button
                 type="button"
-                onClick={() => setFormData({ ...formData, is_group: true, client_id: '' })}
+                onClick={() =>
+                  setFormData({
+                    ...formData,
+                    is_group: true,
+                    client_id: '',
+                    rate_code:
+                      formData.duration === 'overnight'
+                        ? OVERNIGHT_SLEEPOVER_NDIS_CODE
+                        : formData.rate_code,
+                  })
+                }
                 className={cn(
                   'flex-1 h-9 rounded-lg border font-semibold cursor-pointer flex items-center justify-center gap-1.5 transition-all',
                   isGroup
@@ -1240,19 +1261,30 @@ function FormPanel({
           {isGroup && (
             <>
               <FormField label="Rate code">
-                <select
-                  value={formData.rate_code}
-                  onChange={e => setFormData({ ...formData, rate_code: e.target.value })}
-                  required
-                  className={cn(inputClasses, 'cursor-pointer')}
-                >
-                  <option value="">Select a rate code…</option>
-                  {rateCodes.map(rc => (
-                    <option key={rc.id} value={rc.support_item_code}>
-                      {rc.support_item_code} — {rc.support_item_name}
-                    </option>
-                  ))}
-                </select>
+                {formData.duration === 'overnight' ? (
+                  <div
+                    className={cn(
+                      inputClasses,
+                      'flex items-center text-[12px] text-muted-foreground cursor-default',
+                    )}
+                  >
+                    {OVERNIGHT_SLEEPOVER_NDIS_CODE} — Night-Time Sleepover (automatic for overnight)
+                  </div>
+                ) : (
+                  <select
+                    value={formData.rate_code}
+                    onChange={e => setFormData({ ...formData, rate_code: e.target.value })}
+                    required
+                    className={cn(inputClasses, 'cursor-pointer')}
+                  >
+                    <option value="">Select a rate code…</option>
+                    {rateCodes.map(rc => (
+                      <option key={rc.id} value={rc.support_item_code}>
+                        {rc.support_item_code} — {rc.support_item_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </FormField>
               <FormField label={`Participants (${participantCount}) — split evenly`}>
                 <div className="flex flex-col gap-2">
@@ -1304,16 +1336,14 @@ function FormPanel({
             />
           </FormField>
 
-          <div className="grid grid-cols-2 gap-2">
-            <FormField label="Start time">
-              <input
-                type="time"
-                value={formData.start_time}
-                onChange={e => setFormData({ ...formData, start_time: e.target.value })}
-                required
-                className={inputClasses}
-              />
-            </FormField>
+          <div className="grid grid-cols-2 gap-2 items-start">
+            <BookingTimeSelect
+              label="Start time"
+              value={formData.start_time}
+              onChange={start_time => setFormData({ ...formData, start_time })}
+              quickPicks="session-starts"
+              selectClassName={inputClasses}
+            />
             <FormField label="Duration">
               <select
                 value={formData.duration}
@@ -1338,7 +1368,13 @@ function FormPanel({
                   } else {
                     end_date = '';
                   }
-                  setFormData({ ...formData, duration: dur, end_time, end_date });
+                  const rate_code =
+                    dur === 'overnight' && formData.is_group
+                      ? OVERNIGHT_SLEEPOVER_NDIS_CODE
+                      : dur !== 'overnight' && formData.is_group && formData.rate_code === OVERNIGHT_SLEEPOVER_NDIS_CODE
+                        ? ''
+                        : formData.rate_code;
+                  setFormData({ ...formData, duration: dur, end_time, end_date, rate_code });
                 }}
                 className={cn(inputClasses, 'cursor-pointer')}
               >
@@ -1366,17 +1402,23 @@ function FormPanel({
                   />
                 </FormField>
               )}
-              <FormField label="End time">
-                <input
-                  type="time"
-                  value={formData.end_time}
-                  onChange={e => setFormData({ ...formData, end_time: e.target.value })}
-                  required
-                  className={inputClasses}
-                />
-              </FormField>
+              <BookingTimeSelect
+                label="End time"
+                value={formData.end_time}
+                onChange={end_time => setFormData({ ...formData, end_time })}
+                quickPicks={formData.duration === 'overnight' ? 'morning-end' : 'session-starts'}
+                selectClassName={inputClasses}
+              />
             </>
           )}
+
+          <SessionTimePreview
+            dateStr={formData.date}
+            startHHmm={formData.start_time}
+            endHHmm={formData.end_time}
+            endDateStr={formData.end_date}
+            duration={formData.duration}
+          />
 
           <FormField label="Status">
             <div className="flex gap-2">
@@ -1422,7 +1464,10 @@ function FormPanel({
                 type="submit"
                 loading={saving}
                 loadingLabel="Saving…"
-                disabled={isGroup && formData.participants.length < 2}
+                disabled={
+                  (isGroup && formData.participants.length < 2) ||
+                  (isGroup && formData.duration !== 'overnight' && !formData.rate_code)
+                }
                 className="flex-1"
               >
                 {panelMode === 'new' ? 'Book session' : 'Save changes'}

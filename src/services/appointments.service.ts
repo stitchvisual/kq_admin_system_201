@@ -1,6 +1,7 @@
 import { appointmentsRepository, type AppointmentWithClient } from '@/repositories/appointments.repository';
 import { NotFoundError, ValidationError } from '@/lib/errors';
 import { getWeekStart } from '@/lib/date-utils';
+import { resolveAppointmentRateCode } from '@/lib/appointment-pricing';
 import type { NewAppointment, NewAppointmentParticipant } from '@/db/schema';
 
 export type CreateAppointmentInput = {
@@ -78,34 +79,43 @@ export const appointmentsService = {
       throw new ValidationError('This time slot overlaps with an existing appointment');
     }
 
+    const isGroup = data.is_group || false;
+
     // Validate based on appointment type
-    if (data.is_group) {
-      // Group appointment validation
+    if (isGroup) {
       if (!data.participants || data.participants.length < 2) {
         throw new ValidationError('Group appointments require at least 2 participants');
       }
-      if (!data.rate_code) {
-        throw new ValidationError('Rate code is required for group appointments');
-      }
     } else {
-      // Solo appointment validation
       if (!data.client_id) {
         throw new ValidationError('Client is required for solo appointments');
       }
     }
 
+    const { rate_code: resolvedRateCode, validationError: rateValidationError } =
+      resolveAppointmentRateCode({
+        isGroup,
+        startsAt,
+        endsAt,
+        submittedRateCode: data.rate_code ?? null,
+        existingRateCode: null,
+      });
+    if (rateValidationError) {
+      throw new ValidationError(rateValidationError);
+    }
+
     // Create appointment
     const created = await appointmentsRepository.create({
-      client_id: data.is_group ? null : data.client_id!,
+      client_id: isGroup ? null : data.client_id!,
       title: data.title || null,
       starts_at: startsAt,
       ends_at: endsAt,
       notes: data.notes || null,
       status: data.status || 'confirmed',
       invoiced: false,
-      is_group: data.is_group || false,
-      group_size: data.is_group ? data.participants!.length : 1,
-      rate_code: data.rate_code || null,
+      is_group: isGroup,
+      group_size: isGroup ? data.participants!.length : 1,
+      rate_code: resolvedRateCode,
     });
 
     // Create participants for group appointments with even split
@@ -158,6 +168,19 @@ export const appointmentsService = {
       }
     }
 
+    const isGroup = data.is_group !== undefined ? data.is_group : existing.is_group;
+    const { rate_code: resolvedRateCode, validationError: rateValidationError } =
+      resolveAppointmentRateCode({
+        isGroup,
+        startsAt,
+        endsAt,
+        submittedRateCode: data.rate_code,
+        existingRateCode: existing.rate_code,
+      });
+    if (rateValidationError) {
+      throw new ValidationError(rateValidationError);
+    }
+
     // Build update data
     const updateData: Partial<NewAppointment> = {};
     if (data.client_id !== undefined) updateData.client_id = data.client_id || null;
@@ -165,8 +188,8 @@ export const appointmentsService = {
     if (data.starts_at) updateData.starts_at = startsAt;
     if (data.ends_at) updateData.ends_at = endsAt;
     if (data.notes !== undefined) updateData.notes = data.notes || null;
-    if (data.rate_code !== undefined) updateData.rate_code = data.rate_code || null;
     if (data.status !== undefined) updateData.status = data.status;
+    updateData.rate_code = resolvedRateCode;
 
     await appointmentsRepository.update(id, updateData);
 
@@ -176,10 +199,10 @@ export const appointmentsService = {
       if (!existing.is_group) {
         throw new ValidationError('Cannot update participants on a solo appointment. Solo appointments use client_id field instead.');
       }
-      
+
       // Delete existing participants
       await appointmentsRepository.deleteParticipants(id);
-      
+
       // Create new participants with even split
       if (data.participants.length > 0) {
         // Calculate split rate: each participant gets an equal fraction of the group rate
@@ -193,7 +216,7 @@ export const appointmentsService = {
           split_rate: splitRate,
         }));
         await appointmentsRepository.createParticipants(participantRecords);
-        
+
         // Update group size
         await appointmentsRepository.update(id, { group_size: data.participants.length });
       }

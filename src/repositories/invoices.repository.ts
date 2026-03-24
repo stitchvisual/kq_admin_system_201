@@ -481,12 +481,14 @@ export const invoicesRepository = {
     const rawCodes: string[] = [
       // Group: only the NDIS item selected on the appointment (split equally at billing time)
       ...results.filter(r => r.is_group && r.rate_code).map(r => r.rate_code!.trim()),
-      // Solo: client day codes
-      ...results.filter(r => !r.is_group).flatMap(r =>
-        [r.weekday_code, r.saturday_code, r.sunday_code]
+      // Solo: client day codes + appointment override (e.g. overnight sleepover)
+      ...results.filter(r => !r.is_group).flatMap(r => {
+        const codes = [r.weekday_code, r.saturday_code, r.sunday_code]
           .filter((c): c is string => Boolean(c))
-          .map(c => c.trim()),
-      ),
+          .map(c => c.trim());
+        if (r.rate_code?.trim()) codes.push(r.rate_code.trim());
+        return codes;
+      }),
     ];
     const uniqueCodes = [...new Set(rawCodes.filter(Boolean))];
 
