@@ -1,0 +1,208 @@
+{
+  "$description": "KQ Collective Design Token System — W3C DTCG format. Compatible with Style Dictionary, Tokens Studio, and Theo.",
+  "$version": "1.0.0",
+  "$meta": {
+    "project": "KQ Collective",
+    "updated": "2026-03-31",
+    "spec": "https://design-tokens.github.io/community-group/format/"
+  },
+
+  "color": {
+    "$description": "Full color system: primitive palette + semantic aliases",
+
+    "primitive": {
+      "$description": "Raw named values — single source of truth. Do not use in UI directly; prefer semantic aliases.",
+
+      "parchment": {
+        "50":  { "$value": "#faf8f4", "$type": "color", "$description": "Warm white — page background" },
+        "100": { "$value": "#f4f0e8", "$type": "color", "$description": "Parchment — subtle background, nav hover" },
+        "200": { "$value": "#ece7dc", "$type": "color", "$description": "Dark parchment — muted surface, image bg" }
+      },
+
+      "terracotta": {
+        "300": { "$value": "#c4876c", "$type": "color", "$description": "Terracotta muted — eyebrows, hero em, muted accents" },
+        "400": { "$value": "#a35a3f", "$type": "color", "$description": "Terracotta light — button hover state" },
+        "500": { "$value": "#8b4a32", "$type": "color", "$description": "Terracotta — primary brand color" }
+      },
+
+      "charcoal": {
+        "400": { "$value": "#9a8e82", "$type": "color", "$description": "Stone — tertiary text, placeholder" },
+        "600": { "$value": "#6b5f52", "$type": "color", "$description": "Mid-tone — secondary text, body copy on light" },
+        "800": { "$value": "#2e2924", "$type": "color", "$description": "Charcoal — footer background" },
+        "900": { "$value": "#1e1a17", "$type": "color", "$description": "Warm black — primary text, dark section bg" }
+      },
+
+      "sage": {
+        "200": { "$value": "#e8ede6", "$type": "color", "$description": "Sage light — subtle accent background" },
+        "500": { "$value": "#5f7a5a", "$type": "color", "$description": "Sage — nature/wellness accent" }
+      }
+    },
+
+    "semantic": {
+      "$description": "Purpose-driven aliases. Use these in all UI code.",
+
+      "background": {
+        "base":             { "$value": "{color.primitive.parchment.50}",  "$type": "color", "$description": "Page background" },
+        "subtle":           { "$value": "{color.primitive.parchment.100}", "$type": "color", "$description": "Subtle surface — nav hover, intro band" },
+        "muted":            { "$value": "{color.primitive.parchment.200}", "$type": "color", "$description": "Muted surface — image placeholder" },
+        "inverse":          { "$value": "{color.primitive.charcoal.900}",  "$type": "color", "$description": "Dark surface — hero, dark sections" },
+        "inverse-elevated": { "$value": "{color.primitive.charcoal.800}",  "$type": "color", "$description": "Elevated dark surface — footer" }
+      },
+
+      "text": {
+        "primary":     { "$value": "{color.primitive.charcoal.900}",    "$type": "color", "$description": "Primary body text" },
+        "secondary":   { "$value": "{color.primitive.charcoal.600}",    "$type": "color", "$description": "Secondary / subdued text" },
+        "tertiary":    { "$value": "{color.primitive.charcoal.400}",    "$type": "color", "$description": "Tertiary — captions, placeholders" },
+        "inverse":     { "$value": "{color.primitive.parchment.100}",   "$type": "color", "$description": "Text on dark backgrounds" },
+        "brand":       { "$value": "{color.primitive.terracotta.500}",  "$type": "color", "$description": "Brand-colored text, section labels" },
+        "brand-muted": { "$value": "{color.primitive.terracotta.300}",  "$type": "color", "$description": "Muted brand text — hero eyebrows, em" }
+      },
+
+      "brand": {
+        "primary": { "$value": "{color.primitive.terracotta.500}", "$type": "color", "$description": "Primary brand action color — buttons, CTAs" },
+        "hover":   { "$value": "{color.primitive.terracotta.400}", "$type": "color", "$description": "Brand color hover state" },
+        "muted":   { "$value": "{color.primitive.terracotta.300}", "$type": "color", "$description": "Muted brand accent — supporting elements" }
+      },
+
+      "accent": {
+        "sage":        { "$value": "{color.primitive.sage.500}", "$type": "color", "$description": "Sage green — secondary accent" },
+        "sage-subtle": { "$value": "{color.primitive.sage.200}", "$type": "color", "$description": "Sage subtle — light accent background" }
+      },
+
+      "border": {
+        "default":        { "$value": "rgba(139, 74, 50, 0.12)", "$type": "color", "$description": "Terracotta-tinted border at 12% opacity" },
+        "strong":         { "$value": "rgba(30, 26, 23, 0.15)",  "$type": "color", "$description": "Dark border at 15% opacity" },
+        "inverse-subtle": { "$value": "rgba(244, 240, 232, 0.08)", "$type": "color", "$description": "Subtle border on dark backgrounds" }
+      }
+    }
+  },
+
+  "typography": {
+    "$description": "Type system — families, scale, weight, line-height, tracking",
+
+    "fontFamily": {
+      "display": { "$value": ["Cormorant Garamond", "Georgia", "serif"],            "$type": "fontFamily", "$description": "Serif display — headings, hero, brand voice" },
+      "body":    { "$value": ["DM Sans", "system-ui", "-apple-system", "sans-serif"], "$type": "fontFamily", "$description": "Humanist sans-serif — body copy, UI labels" }
+    },
+
+    "fontSize": {
+      "2xs":  { "$value": "0.6875rem", "$type": "dimension", "$description": "11px — finest labels" },
+      "xs":   { "$value": "0.75rem",   "$type": "dimension", "$description": "12px — footer fine print, scroll hints" },
+      "sm":   { "$value": "0.875rem",  "$type": "dimension", "$description": "14px — nav links, captions, service num" },
+      "md":   { "$value": "0.9375rem", "$type": "dimension", "$description": "15px — button text, body copy, service detail body" },
+      "base": { "$value": "1rem",      "$type": "dimension", "$description": "16px — base body size" },
+      "lg":   { "$value": "1.05rem",   "$type": "dimension", "$description": "~17px — hero subtitle, page hero sub" },
+      "xl":   { "$value": "1.2rem",    "$type": "dimension", "$description": "19.2px — nav logo text" },
+      "2xl":  { "$value": "1.5rem",    "$type": "dimension", "$description": "24px — footer brand name" },
+      "3xl":  { "$value": "2rem",      "$type": "dimension", "$description": "32px — drawer nav links" },
+      "4xl":  { "$value": "2.5rem",    "$type": "dimension", "$description": "40px — medium display" },
+      "5xl":  { "$value": "3rem",      "$type": "dimension", "$description": "48px — display minimum (clamp floor)" },
+      "6xl":  { "$value": "4rem",      "$type": "dimension", "$description": "64px — large display" },
+      "7xl":  { "$value": "6rem",      "$type": "dimension", "$description": "96px — page hero title max" },
+      "8xl":  { "$value": "9.5rem",    "$type": "dimension", "$description": "152px — homepage hero max" }
+    },
+
+    "fontWeight": {
+      "light":    { "$value": 300, "$type": "fontWeight", "$description": "Light — display headings, supporting body" },
+      "regular":  { "$value": 400, "$type": "fontWeight", "$description": "Regular — body copy, nav links" },
+      "medium":   { "$value": 500, "$type": "fontWeight", "$description": "Medium — buttons, labels, active states" },
+      "semibold": { "$value": 600, "$type": "fontWeight", "$description": "Semibold — strong emphasis in display type" }
+    },
+
+    "lineHeight": {
+      "hero":    { "$value": 0.92, "$type": "number", "$description": "Hero title — very tight for large display" },
+      "tight":   { "$value": 0.95, "$type": "number", "$description": "Page hero — sub-1 for massive type" },
+      "snug":    { "$value": 1.15, "$type": "number", "$description": "Section titles" },
+      "normal":  { "$value": 1.2,  "$type": "number", "$description": "CTA titles, subheadings" },
+      "base":    { "$value": 1.6,  "$type": "number", "$description": "Body copy" },
+      "relaxed": { "$value": 1.75, "$type": "number", "$description": "Long-form text, hero subtitle" },
+      "loose":   { "$value": 1.8,  "$type": "number", "$description": "Service body — maximum readability" }
+    },
+
+    "letterSpacing": {
+      "tight": { "$value": "-0.01em", "$type": "dimension", "$description": "Negative tracking — large display type" },
+      "none":  { "$value": "0em",     "$type": "dimension", "$description": "No tracking" },
+      "xs":    { "$value": "0.01em",  "$type": "dimension", "$description": "Micro tracking — button text" },
+      "sm":    { "$value": "0.04em",  "$type": "dimension", "$description": "Logo text tracking" },
+      "md":    { "$value": "0.15em",  "$type": "dimension", "$description": "Scroll hint" },
+      "lg":    { "$value": "0.16em",  "$type": "dimension", "$description": "Intro label tracking" },
+      "xl":    { "$value": "0.18em",  "$type": "dimension", "$description": "Footer column headings" },
+      "2xl":   { "$value": "0.2em",   "$type": "dimension", "$description": "Section labels, eyebrows, hero eyebrow" }
+    }
+  },
+
+  "spacing": {
+    "$description": "4px base-unit spacing scale. Value = step × 4px.",
+    "1":  { "$value": "4px",   "$type": "dimension" },
+    "2":  { "$value": "8px",   "$type": "dimension" },
+    "3":  { "$value": "12px",  "$type": "dimension" },
+    "4":  { "$value": "16px",  "$type": "dimension" },
+    "5":  { "$value": "20px",  "$type": "dimension" },
+    "6":  { "$value": "24px",  "$type": "dimension" },
+    "7":  { "$value": "28px",  "$type": "dimension" },
+    "8":  { "$value": "32px",  "$type": "dimension" },
+    "9":  { "$value": "36px",  "$type": "dimension" },
+    "10": { "$value": "40px",  "$type": "dimension" },
+    "12": { "$value": "48px",  "$type": "dimension" },
+    "13": { "$value": "52px",  "$type": "dimension" },
+    "14": { "$value": "56px",  "$type": "dimension" },
+    "16": { "$value": "64px",  "$type": "dimension" },
+    "18": { "$value": "72px",  "$type": "dimension" },
+    "20": { "$value": "80px",  "$type": "dimension" },
+    "22": { "$value": "88px",  "$type": "dimension" },
+    "24": { "$value": "96px",  "$type": "dimension" },
+    "30": { "$value": "120px", "$type": "dimension" }
+  },
+
+  "sizing": {
+    "$description": "Fixed sizes for layout and components",
+    "content-max": { "$value": "1280px", "$type": "dimension", "$description": "Max width for all content containers" },
+    "nav-height":  { "$value": "68px",   "$type": "dimension", "$description": "Sticky navigation bar height" },
+    "logo-mark":   { "$value": "32px",   "$type": "dimension", "$description": "Circular logo mark diameter" }
+  },
+
+  "borderRadius": {
+    "$description": "Radius scale from sharp to full-pill",
+    "none": { "$value": "0px",    "$type": "dimension", "$description": "No rounding" },
+    "xs":   { "$value": "4px",    "$type": "dimension", "$description": "Focus ring outlines" },
+    "sm":   { "$value": "6px",    "$type": "dimension", "$description": "Nav link hover bg" },
+    "md":   { "$value": "8px",    "$type": "dimension", "$description": "Nav CTA, small buttons" },
+    "lg":   { "$value": "10px",   "$type": "dimension", "$description": "Primary buttons, form inputs" },
+    "xl":   { "$value": "16px",   "$type": "dimension", "$description": "Cards, panels, service details" },
+    "full": { "$value": "9999px", "$type": "dimension", "$description": "Pill — logo mark, tags" }
+  },
+
+  "border": {
+    "$description": "Border width values",
+    "width": {
+      "default": { "$value": "1px",   "$type": "dimension", "$description": "Standard border" },
+      "thick":   { "$value": "1.5px", "$type": "dimension", "$description": "Logo mark ring" }
+    }
+  },
+
+  "motion": {
+    "$description": "Animation timing and easing",
+    "duration": {
+      "fast":   { "$value": "150ms", "$type": "duration", "$description": "Micro-interactions — button transform lift" },
+      "base":   { "$value": "200ms", "$type": "duration", "$description": "Standard transitions — color, background, opacity" },
+      "slow":   { "$value": "250ms", "$type": "duration", "$description": "Structural transitions — hamburger menu" }
+    },
+    "easing": {
+      "default": { "$value": [0.4, 0, 0.2, 1], "$type": "cubicBezier", "$description": "Material standard ease — most transitions" },
+      "in-out":  { "$value": [0.4, 0, 0.6, 1], "$type": "cubicBezier", "$description": "Symmetrical ease — enter/exit pairs" }
+    }
+  },
+
+  "zIndex": {
+    "$description": "Stacking context scale",
+    "drawer": { "$value": 99,  "$type": "number", "$description": "Mobile nav drawer overlay" },
+    "nav":    { "$value": 100, "$type": "number", "$description": "Sticky navigation bar" }
+  },
+
+  "breakpoint": {
+    "$description": "Responsive breakpoints — reference only. Use in CSS media queries, not as custom properties.",
+    "sm": { "$value": "640px",  "$type": "dimension", "$description": "Mobile — nav collapses to hamburger, section padding reduces" },
+    "md": { "$value": "900px",  "$type": "dimension", "$description": "Tablet — CTA/footer stack, grid shifts" },
+    "lg": { "$value": "1280px", "$type": "dimension", "$description": "Desktop max content width" }
+  }
+}

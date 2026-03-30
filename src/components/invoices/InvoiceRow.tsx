@@ -118,8 +118,8 @@ export function InvoiceRow({
         'border-b border-primary/80 items-center cursor-pointer'
       )}
       variants={fadeUp}
-      whileHover={{ backgroundColor: 'hsl(130 13% 50% / 0.04)' }}
-      style={{ background: selected ? 'hsl(130 13% 50% / 0.05)' : undefined }}
+      whileHover={{ backgroundColor: 'var(--color-semantic-accent-sage-subtle)' }}
+      style={{ background: selected ? 'var(--color-semantic-accent-sage-subtle)' : undefined }}
       onClick={onClick}
     >
       <input
@@ -223,7 +223,7 @@ export function InvoiceRow({
             onDownload();
           }}
           disabled={!!pdfLoading}
-          className="w-7 h-7 rounded-md border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex items-center justify-center text-[hsl(145_15%_35%)] hover:bg-[hsl(42_26%_87%)] disabled:opacity-50 transition-colors"
+          className="w-7 h-7 rounded-md border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] flex items-center justify-center text-[var(--color-semantic-text-secondary)] hover:bg-[var(--color-semantic-border-default)] disabled:opacity-50 transition-colors"
           title="Download PDF"
         >
           {pdfLoading ? (
@@ -249,7 +249,7 @@ export function InvoiceRow({
             }
             setShowOverflow(v => !v);
           }}
-          className="w-7 h-7 rounded-md border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex items-center justify-center text-[hsl(145_15%_35%)] hover:bg-[hsl(42_26%_87%)] transition-colors"
+          className="w-7 h-7 rounded-md border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] flex items-center justify-center text-[var(--color-semantic-text-secondary)] hover:bg-[var(--color-semantic-border-default)] transition-colors"
         >
           <MoreHorizontal size={14} />
         </button>
@@ -268,7 +268,7 @@ export function InvoiceRow({
                   <motion.div
                     key="overflow-menu"
                     role="menu"
-                    className="fixed z-[10001] min-w-[160px] overflow-hidden rounded-lg border border-primary bg-[hsl(var(--color-card))] shadow-xl"
+                    className="fixed z-[10001] min-w-[160px] overflow-hidden rounded-lg border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-base)] shadow-xl"
                     style={{ top: menuPos.top, right: menuPos.right }}
                     variants={dropdownMenu}
                     initial="hidden"
@@ -283,7 +283,7 @@ export function InvoiceRow({
                         setShowOverflow(false);
                         onClick();
                       }}
-                      className="flex w-full items-center gap-1.5 bg-[hsl(42_26%_92%)] px-3.5 py-2.5 text-left text-[12.5px] text-foreground transition-colors hover:bg-[hsl(42_26%_87%)]"
+                      className="flex w-full items-center gap-1.5 bg-[var(--color-semantic-background-muted)] px-3.5 py-2.5 text-left text-[12.5px] text-foreground transition-colors hover:bg-[var(--color-semantic-border-default)]"
                     >
                       <Eye size={13} /> View Details
                     </button>
@@ -296,7 +296,7 @@ export function InvoiceRow({
                           setShowOverflow(false);
                           onCancel();
                         }}
-                        className="flex w-full items-center gap-1.5 bg-[hsl(42_26%_92%)] px-3.5 py-2.5 text-left text-red-600 transition-colors hover:bg-[hsl(42_26%_87%)]"
+                        className="flex w-full items-center gap-1.5 bg-[var(--color-semantic-background-muted)] px-3.5 py-2.5 text-left text-red-600 transition-colors hover:bg-[var(--color-semantic-border-default)]"
                       >
                         <XCircle size={13} /> Cancel
                       </button>

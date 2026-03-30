@@ -7,11 +7,11 @@ import { cn } from '@/lib/utils';
 /* ─── Panel Header ─────────────────────────────────────────────────────── */
 
 interface PanelHeaderProps {
-  breadcrumb: string;          // e.g. "Invoices" or "Clients"
-  title: string;               // e.g. "Invoice details"
+  breadcrumb: string; // e.g. "Invoices" or "Clients"
+  title: string; // e.g. "Invoice details"
   /** Tailwind bg class for the 3px top bar (ignored when showAccentBar is false) */
   accentClass?: string;
-  titleColorClass?: string;    // Override for destructive panels
+  titleColorClass?: string; // Override for destructive panels
   /** When false, render header row only (use a separate accent bar above, e.g. invoice panel) */
   showAccentBar?: boolean;
   onClose: () => void;
@@ -42,7 +42,7 @@ export function PanelHeader({
             <button
               type="button"
               onClick={onToggle}
-              className="hidden md:flex w-7 h-7 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex-shrink-0 items-center justify-center text-[hsl(145_15%_35%)] hover:bg-[hsl(42_26%_87%)] hover:text-foreground transition-colors duration-150 transition-transform duration-100 active:scale-95"
+              className="hidden md:flex w-7 h-7 rounded-lg border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] flex-shrink-0 items-center justify-center text-[var(--color-semantic-text-secondary)] hover:bg-[var(--color-semantic-border-default)] hover:text-foreground transition-colors duration-[var(--motion-duration-fast)] transition-transform duration-[var(--motion-duration-fast)] active:scale-95"
               title={collapsed ? 'Expand panel' : 'Collapse panel'}
               aria-label={collapsed ? 'Expand panel' : 'Collapse panel'}
             >
@@ -53,7 +53,12 @@ export function PanelHeader({
             <p className="text-[10px] font-medium uppercase tracking-[0.07em] text-muted-foreground mb-0.5">
               {breadcrumb}
             </p>
-            <h2 className={cn('font-heading text-[15px] font-semibold leading-tight m-0', titleColorClass)}>
+            <h2
+              className={cn(
+                'font-heading text-[15px] font-semibold leading-tight m-0',
+                titleColorClass,
+              )}
+            >
               {title}
             </h2>
           </div>
@@ -63,11 +68,11 @@ export function PanelHeader({
           onClick={onClose}
           aria-label="Close panel"
           className={cn(
-            'w-7 h-7 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] flex-shrink-0',
-            'flex items-center justify-center text-[hsl(145_15%_35%)]',
-            'hover:bg-[hsl(42_26%_87%)] hover:text-foreground',
-            'transition-colors duration-150 transition-transform duration-100',
-            'active:scale-95'
+            'w-7 h-7 rounded-lg border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] flex-shrink-0',
+            'flex items-center justify-center text-[var(--color-semantic-text-secondary)]',
+            'hover:bg-[var(--color-semantic-border-default)] hover:text-foreground',
+            'transition-colors duration-[var(--motion-duration-fast)] transition-transform duration-[var(--motion-duration-fast)]',
+            'active:scale-95',
           )}
         >
           <X size={14} />
@@ -90,11 +95,7 @@ export function SheetHandle({ className }: { className?: string }) {
 /* ─── Scrollable panel content ───────────────────────────────────────────── */
 
 export function PanelContent({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="flex-1 overflow-y-auto p-5 min-w-0">
-      {children}
-    </div>
-  );
+  return <div className="flex-1 overflow-y-auto p-5 min-w-0">{children}</div>;
 }
 
 /* ─── Section label ─────────────────────────────────────────────────────── */
@@ -143,21 +144,28 @@ interface PrimaryBtnProps extends React.ButtonHTMLAttributes<HTMLButtonElement> 
   loadingLabel?: string;
 }
 
-export function PrimaryBtn({ children, loading, loadingLabel, className, ...props }: PrimaryBtnProps) {
+export function PrimaryBtn({
+  children,
+  loading,
+  loadingLabel,
+  className,
+  ...props
+}: PrimaryBtnProps) {
   return (
     <button
       {...props}
       disabled={props.disabled || loading}
       className={cn(
-        'h-11 md:h-10 w-full rounded-lg',
-        'bg-[hsl(var(--color-primary))] text-white',
+        'h-11 md:h-10 w-full rounded-lg relative overflow-hidden',
+        'bg-gradient-to-b from-[var(--color-semantic-brand-primary)] to-[var(--color-semantic-brand-hover)] text-white',
         'text-[13px] md:text-[13px] font-medium',
         'flex items-center justify-center gap-2',
-        'shadow-sm hover:opacity-90 hover:shadow-md',
-        'transition-all duration-150 transition-shadow duration-150',
-        'transition-transform duration-100 active:scale-[0.98]',
-        'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100',
-        className
+        'shadow-button hover:shadow-button-hover hover:-translate-y-0.5',
+        'transition-all duration-[var(--motion-duration-base)] ease-[var(--motion-easing-default)]',
+        'active:translate-y-0 active:scale-[0.98]',
+        'disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 disabled:hover:translate-y-0',
+        'before:absolute before:inset-0 before:bg-gradient-to-b before:from-white/[0.08] before:to-transparent before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-[var(--motion-duration-fast)]',
+        className,
       )}
     >
       {loading ? (
@@ -174,19 +182,24 @@ export function PrimaryBtn({ children, loading, loadingLabel, className, ...prop
 
 /* ─── Secondary action button ───────────────────────────────────────────── */
 
-export function SecondaryBtn({ children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+export function SecondaryBtn({
+  children,
+  className,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...props}
       className={cn(
         'h-11 md:h-10 flex-1 rounded-lg',
-        'border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)]',
-        'text-[12px] font-medium text-[hsl(145_15%_28%)]',
+        'border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)]',
+        'text-[12px] font-medium text-[var(--color-semantic-text-primary)]',
         'flex items-center justify-center gap-1.5',
-        'hover:bg-[hsl(42_26%_87%)] hover:border-[hsl(34_22%_68%)]',
-        'transition-all duration-150 transition-transform duration-100 active:scale-[0.98]',
-        'disabled:opacity-50',
-        className
+        'hover:bg-[var(--color-semantic-border-default)] hover:border-[var(--color-semantic-border-strong)] hover:-translate-y-0.5 hover:shadow-soft',
+        'transition-all duration-[var(--motion-duration-base)] ease-[var(--motion-easing-default)]',
+        'active:translate-y-0 active:scale-[0.98]',
+        'disabled:opacity-50 disabled:cursor-not-allowed',
+        className,
       )}
     >
       {children}
@@ -196,19 +209,24 @@ export function SecondaryBtn({ children, className, ...props }: React.ButtonHTML
 
 /* ─── Destructive action button ─────────────────────────────────────────── */
 
-export function DangerBtn({ children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+export function DangerBtn({
+  children,
+  className,
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...props}
       className={cn(
         'h-11 md:h-10 flex-1 rounded-lg',
-        'border border-[rgba(160,64,64,0.40)] bg-[rgba(160,64,64,0.06)]',
-        'text-[12px] font-medium text-[#a04040]',
+        'border border-[var(--color-semantic-brand-primary)]/40 bg-[var(--color-semantic-brand-primary)]/6',
+        'text-[12px] font-medium text-[var(--color-semantic-brand-primary)]',
         'flex items-center justify-center gap-1.5',
-        'hover:bg-[rgba(160,64,64,0.12)] hover:border-[rgba(160,64,64,0.55)]',
-        'transition-all duration-150 transition-transform duration-100 active:scale-[0.98]',
-        'disabled:opacity-50',
-        className
+        'hover:bg-[var(--color-semantic-brand-primary)]/12 hover:border-[var(--color-semantic-brand-primary)]/55 hover:-translate-y-0.5',
+        'transition-all duration-[var(--motion-duration-base)] ease-[var(--motion-easing-default)]',
+        'active:translate-y-0 active:scale-[0.98]',
+        'disabled:opacity-50 disabled:cursor-not-allowed',
+        className,
       )}
     >
       {children}

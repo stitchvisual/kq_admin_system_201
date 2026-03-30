@@ -1,0 +1,203 @@
+/**
+ * KQ Collective Design Tokens
+ * Auto-generated from stitch_tokens.json
+ * Do not edit directly - modify the source JSON and re-run transform-tokens
+ */
+
+:root {
+  /* Warm white — page background */
+  --color-primitive-parchment-50: #faf8f4;
+  /* Parchment — subtle background, nav hover */
+  --color-primitive-parchment-100: #f4f0e8;
+  /* Dark parchment — muted surface, image bg */
+  --color-primitive-parchment-200: #ece7dc;
+  /* Terracotta muted — eyebrows, hero em, muted accents */
+  --color-primitive-terracotta-300: #c4876c;
+  /* Terracotta light — button hover state */
+  --color-primitive-terracotta-400: #a35a3f;
+  /* Terracotta — primary brand color */
+  --color-primitive-terracotta-500: #8b4a32;
+  /* Stone — tertiary text, placeholder */
+  --color-primitive-charcoal-400: #9a8e82;
+  /* Mid-tone — secondary text, body copy on light */
+  --color-primitive-charcoal-600: #6b5f52;
+  /* Charcoal — footer background */
+  --color-primitive-charcoal-800: #2e2924;
+  /* Warm black — primary text, dark section bg */
+  --color-primitive-charcoal-900: #1e1a17;
+  /* Sage light — subtle accent background */
+  --color-primitive-sage-200: #e8ede6;
+  /* Sage — nature/wellness accent */
+  --color-primitive-sage-500: #5f7a5a;
+  /* Page background */
+  --color-semantic-background-base: #faf8f4;
+  /* Subtle surface — nav hover, intro band */
+  --color-semantic-background-subtle: #f4f0e8;
+  /* Muted surface — image placeholder */
+  --color-semantic-background-muted: #ece7dc;
+  /* Dark surface — hero, dark sections */
+  --color-semantic-background-inverse: #1e1a17;
+  /* Elevated dark surface — footer */
+  --color-semantic-background-inverse-elevated: #2e2924;
+  /* Primary body text */
+  --color-semantic-text-primary: #1e1a17;
+  /* Secondary / subdued text */
+  --color-semantic-text-secondary: #6b5f52;
+  /* Tertiary — captions, placeholders */
+  --color-semantic-text-tertiary: #9a8e82;
+  /* Text on dark backgrounds */
+  --color-semantic-text-inverse: #f4f0e8;
+  /* Brand-colored text, section labels */
+  --color-semantic-text-brand: #8b4a32;
+  /* Muted brand text — hero eyebrows, em */
+  --color-semantic-text-brand-muted: #c4876c;
+  /* Primary brand action color — buttons, CTAs */
+  --color-semantic-brand-primary: #8b4a32;
+  /* Brand color hover state */
+  --color-semantic-brand-hover: #a35a3f;
+  /* Muted brand accent — supporting elements */
+  --color-semantic-brand-muted: #c4876c;
+  /* Sage green — secondary accent */
+  --color-semantic-accent-sage: #5f7a5a;
+  /* Sage subtle — light accent background */
+  --color-semantic-accent-sage-subtle: #e8ede6;
+  /* Terracotta-tinted border at 12% opacity */
+  --color-semantic-border-default: rgba(139, 74, 50, 0.12);
+  /* Dark border at 15% opacity */
+  --color-semantic-border-strong: rgba(30, 26, 23, 0.15);
+  /* Subtle border on dark backgrounds */
+  --color-semantic-border-inverse-subtle: rgba(244, 240, 232, 0.08);
+  /* Serif display — headings, hero, brand voice */
+  --typography-font-family-display: Cormorant Garamond,Georgia,serif;
+  /* Humanist sans-serif — body copy, UI labels */
+  --typography-font-family-body: DM Sans,system-ui,-apple-system,sans-serif;
+  /* 11px — finest labels */
+  --typography-font-size-2xs: 0.6875rem;
+  /* 12px — footer fine print, scroll hints */
+  --typography-font-size-xs: 0.75rem;
+  /* 14px — nav links, captions, service num */
+  --typography-font-size-sm: 0.875rem;
+  /* 15px — button text, body copy, service detail body */
+  --typography-font-size-md: 0.9375rem;
+  /* 16px — base body size */
+  --typography-font-size-base: 1rem;
+  /* ~17px — hero subtitle, page hero sub */
+  --typography-font-size-lg: 1.05rem;
+  /* 19.2px — nav logo text */
+  --typography-font-size-xl: 1.2rem;
+  /* 24px — footer brand name */
+  --typography-font-size-2xl: 1.5rem;
+  /* 32px — drawer nav links */
+  --typography-font-size-3xl: 2rem;
+  /* 40px — medium display */
+  --typography-font-size-4xl: 2.5rem;
+  /* 48px — display minimum (clamp floor) */
+  --typography-font-size-5xl: 3rem;
+  /* 64px — large display */
+  --typography-font-size-6xl: 4rem;
+  /* 96px — page hero title max */
+  --typography-font-size-7xl: 6rem;
+  /* 152px — homepage hero max */
+  --typography-font-size-8xl: 9.5rem;
+  /* Light — display headings, supporting body */
+  --typography-font-weight-light: 300;
+  /* Regular — body copy, nav links */
+  --typography-font-weight-regular: 400;
+  /* Medium — buttons, labels, active states */
+  --typography-font-weight-medium: 500;
+  /* Semibold — strong emphasis in display type */
+  --typography-font-weight-semibold: 600;
+  /* Hero title — very tight for large display */
+  --typography-line-height-hero: 0.92;
+  /* Page hero — sub-1 for massive type */
+  --typography-line-height-tight: 0.95;
+  /* Section titles */
+  --typography-line-height-snug: 1.15;
+  /* CTA titles, subheadings */
+  --typography-line-height-normal: 1.2;
+  /* Body copy */
+  --typography-line-height-base: 1.6;
+  /* Long-form text, hero subtitle */
+  --typography-line-height-relaxed: 1.75;
+  /* Service body — maximum readability */
+  --typography-line-height-loose: 1.8;
+  /* Negative tracking — large display type */
+  --typography-letter-spacing-tight: -0.01em;
+  /* No tracking */
+  --typography-letter-spacing-none: 0em;
+  /* Micro tracking — button text */
+  --typography-letter-spacing-xs: 0.01em;
+  /* Logo text tracking */
+  --typography-letter-spacing-sm: 0.04em;
+  /* Scroll hint */
+  --typography-letter-spacing-md: 0.15em;
+  /* Intro label tracking */
+  --typography-letter-spacing-lg: 0.16em;
+  /* Footer column headings */
+  --typography-letter-spacing-xl: 0.18em;
+  /* Section labels, eyebrows, hero eyebrow */
+  --typography-letter-spacing-2xl: 0.2em;
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-5: 20px;
+  --spacing-6: 24px;
+  --spacing-7: 28px;
+  --spacing-8: 32px;
+  --spacing-9: 36px;
+  --spacing-10: 40px;
+  --spacing-12: 48px;
+  --spacing-13: 52px;
+  --spacing-14: 56px;
+  --spacing-16: 64px;
+  --spacing-18: 72px;
+  --spacing-20: 80px;
+  --spacing-22: 88px;
+  --spacing-24: 96px;
+  --spacing-30: 120px;
+  /* Max width for all content containers */
+  --sizing-content-max: 1280px;
+  /* Sticky navigation bar height */
+  --sizing-nav-height: 68px;
+  /* Circular logo mark diameter */
+  --sizing-logo-mark: 32px;
+  /* No rounding */
+  --border-radius-none: 0px;
+  /* Focus ring outlines */
+  --border-radius-xs: 4px;
+  /* Nav link hover bg */
+  --border-radius-sm: 6px;
+  /* Nav CTA, small buttons */
+  --border-radius-md: 8px;
+  /* Primary buttons, form inputs */
+  --border-radius-lg: 10px;
+  /* Cards, panels, service details */
+  --border-radius-xl: 16px;
+  /* Pill — logo mark, tags */
+  --border-radius-full: 9999px;
+  /* Standard border */
+  --border-width-default: 1px;
+  /* Logo mark ring */
+  --border-width-thick: 1.5px;
+  /* Micro-interactions — button transform lift */
+  --motion-duration-fast: 150ms;
+  /* Standard transitions — color, background, opacity */
+  --motion-duration-base: 200ms;
+  /* Structural transitions — hamburger menu */
+  --motion-duration-slow: 250ms;
+  /* Material standard ease — most transitions */
+  --motion-easing-default: 0.4,0,0.2,1;
+  /* Symmetrical ease — enter/exit pairs */
+  --motion-easing-in-out: 0.4,0,0.6,1;
+  /* Mobile nav drawer overlay */
+  --z-index-drawer: 99;
+  /* Sticky navigation bar */
+  --z-index-nav: 100;
+  /* Mobile — nav collapses to hamburger, section padding reduces */
+  --breakpoint-sm: 640px;
+  /* Tablet — CTA/footer stack, grid shifts */
+  --breakpoint-md: 900px;
+  /* Desktop max content width */
+  --breakpoint-lg: 1280px;
+}

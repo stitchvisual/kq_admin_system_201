@@ -1,11 +1,84 @@
-/* Loading Animations - Re-exported from globals.css for backward compatibility */
-/* All animation keyframes are now consolidated in globals.css */
-/* This file is kept for import compatibility only */
+/* Loading Animations - Premium Motion Design System */
+/* Phase 2 Enhancements - Staggered lists, shimmer effects, page transitions */
 
-/* Re-export utility classes that components may depend on */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Premium Shimmer Effect
+   ───────────────────────────────────────────────────────────────────────────── */
+
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+@keyframes shimmer-premium {
+  0% { 
+    background-position: -200% 0;
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% { 
+    background-position: 200% 0;
+    opacity: 0.6;
+  }
+}
+
+@keyframes shimmer-pulse {
+  0%, 100% { 
+    background-position: -200% 0;
+    opacity: 0.5;
+  }
+  50% { 
+    opacity: 0.8;
+  }
+}
+
+/* Premium skeleton with gradient shimmer */
+.skeleton-premium {
+  --skeleton-base: var(--color-semantic-background-muted);
+  --skeleton-highlight: var(--color-semantic-background-base);
+  --skeleton-shimmer: var(--color-semantic-text-tertiary);
+  
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-base) 0%,
+    var(--skeleton-highlight) 20%,
+    var(--skeleton-shimmer) 40%,
+    var(--skeleton-highlight) 60%,
+    var(--skeleton-base) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-premium 2s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+/* Skeleton variants */
+.skeleton-premium-text {
+  height: 1em;
+  border-radius: 4px;
+}
+
+.skeleton-premium-title {
+  height: 1.5em;
+  width: 60%;
+  border-radius: 4px;
+}
+
+.skeleton-premium-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.skeleton-premium-card {
+  height: 200px;
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-premium-button {
+  height: 44px;
+  border-radius: var(--radius-md);
 }
 
 @keyframes fadeInUp {
@@ -134,4 +207,300 @@
 .hover-enhanced:hover {
   transform: translateY(-1px);
   box-shadow: var(--shadow-soft-md);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Premium Staggered List Animations
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Premium stagger with fade + slide */
+@keyframes stagger-premium {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Stagger container with premium easing */
+.stagger-premium {
+  --stagger-delay: 0.04s;
+  --stagger-duration: var(--motion-duration-slow);
+}
+
+.stagger-premium > * {
+  opacity: 0;
+  animation: stagger-premium var(--stagger-duration) cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Extended stagger delays (up to 12 items) */
+.stagger-premium > *:nth-child(1) { animation-delay: calc(var(--stagger-delay) * 0); }
+.stagger-premium > *:nth-child(2) { animation-delay: calc(var(--stagger-delay) * 1); }
+.stagger-premium > *:nth-child(3) { animation-delay: calc(var(--stagger-delay) * 2); }
+.stagger-premium > *:nth-child(4) { animation-delay: calc(var(--stagger-delay) * 3); }
+.stagger-premium > *:nth-child(5) { animation-delay: calc(var(--stagger-delay) * 4); }
+.stagger-premium > *:nth-child(6) { animation-delay: calc(var(--stagger-delay) * 5); }
+.stagger-premium > *:nth-child(7) { animation-delay: calc(var(--stagger-delay) * 6); }
+.stagger-premium > *:nth-child(8) { animation-delay: calc(var(--stagger-delay) * 7); }
+.stagger-premium > *:nth-child(9) { animation-delay: calc(var(--stagger-delay) * 8); }
+.stagger-premium > *:nth-child(10) { animation-delay: calc(var(--stagger-delay) * 9); }
+.stagger-premium > *:nth-child(11) { animation-delay: calc(var(--stagger-delay) * 10); }
+.stagger-premium > *:nth-child(12) { animation-delay: calc(var(--stagger-delay) * 11); }
+
+/* Fast stagger variant for dense lists */
+.stagger-premium-fast {
+  --stagger-delay: 0.025s;
+  --stagger-duration: var(--motion-duration-fast);
+}
+
+/* Slow stagger variant for dramatic reveals */
+.stagger-premium-slow {
+  --stagger-delay: 0.08s;
+  --stagger-duration: 0.5s;
+}
+
+/* Card grid stagger */
+.stagger-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.stagger-grid > * {
+  opacity: 0;
+  animation: stagger-premium 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.stagger-grid > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-grid > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-grid > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-grid > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-grid > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-grid > *:nth-child(6) { animation-delay: 0.3s; }
+.stagger-grid > *:nth-child(7) { animation-delay: 0.35s; }
+.stagger-grid > *:nth-child(8) { animation-delay: 0.4s; }
+.stagger-grid > *:nth-child(9) { animation-delay: 0.45s; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Page Transition Animations
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes page-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes fade-scale-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Page transition wrapper */
+.page-transition-enter {
+  animation: page-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.page-transition-exit {
+  animation: page-exit 0.2s ease-in both;
+}
+
+/* Content sections with orchestrated entrance */
+.content-section {
+  animation: page-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.content-section:nth-child(1) { animation-delay: 0s; }
+.content-section:nth-child(2) { animation-delay: 0.08s; }
+.content-section:nth-child(3) { animation-delay: 0.16s; }
+.content-section:nth-child(4) { animation-delay: 0.24s; }
+
+/* Panel slide-in animation */
+@keyframes panel-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes panel-slide-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.panel-slide-enter {
+  animation: panel-slide-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.panel-slide-exit {
+  animation: panel-slide-out 0.25s ease-in both;
+}
+
+/* Modal scale + fade */
+@keyframes modal-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes modal-exit {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+}
+
+.modal-enter {
+  animation: modal-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.modal-exit {
+  animation: modal-exit 0.2s ease-in both;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Success/Error Micro-animations
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes success-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes success-check {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes error-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+@keyframes error-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(200, 80, 80, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(200, 80, 80, 0);
+  }
+}
+
+.animate-success {
+  animation: success-pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-success-check {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: success-check 0.3s ease-out 0.2s both;
+}
+
+.animate-error {
+  animation: error-shake 0.4s ease-in-out both;
+}
+
+.animate-error-pulse {
+  animation: error-pulse 0.6s ease-out both;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Number Counting Animation (for stats/dashboards)
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes count-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-count {
+  animation: count-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Reduced Motion Support
+   ───────────────────────────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-premium > *,
+  .stagger-grid > *,
+  .page-transition-enter,
+  .page-transition-exit,
+  .panel-slide-enter,
+  .panel-slide-exit,
+  .modal-enter,
+  .modal-exit,
+  .content-section,
+  .animate-success,
+  .animate-error,
+  .animate-count,
+  .skeleton-premium,
+  .skeleton-shimmer {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

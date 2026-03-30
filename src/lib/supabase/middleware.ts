@@ -33,9 +33,25 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data, error } = await supabase.auth.getUser();
+  const user = data.user;
+
+  // If the refresh token is invalid/expired, clear the session cookies
+  // so we don't keep attempting to refresh on every request.
+  if (error) {
+    const message = (error.message || '').toLowerCase();
+    const looksLikeInvalidRefresh =
+      message.includes('invalid refresh token') || message.includes('refresh token');
+
+    if (looksLikeInvalidRefresh) {
+      // signOut clears cookies via the `cookies.setAll` hook above.
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // If clearing fails for any reason, still allow the normal redirect below.
+      }
+    }
+  }
 
   // Protect /admin routes
   if (request.nextUrl.pathname.startsWith("/admin") && !user) {

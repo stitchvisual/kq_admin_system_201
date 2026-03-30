@@ -30,10 +30,28 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        router.push("/admin");
-        router.refresh();
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          const message = (error.message || '').toLowerCase();
+          const looksLikeInvalidRefresh =
+            message.includes('invalid refresh token') || message.includes('refresh token');
+          if (looksLikeInvalidRefresh) {
+            try {
+              await supabase.auth.signOut();
+            } catch {
+              // Ignore signOut failures; we still proceed to show login form.
+            }
+            return;
+          }
+        }
+
+        if (session) {
+          router.push("/admin");
+          router.refresh();
+        }
+      } catch {
+        // If session check fails, just stay on the login page.
       }
     };
     checkAuth();

@@ -24,7 +24,8 @@ const nextConfig: NextConfig = {
         source: '/:path*',
         headers: [
           // Prevent clickjacking
-          { key: 'X-Frame-Options', value: 'DENY' },
+          // Allow same-origin framing (required for our marketing iframe pages).
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           // Prevent MIME type sniffing
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           // Control referrer information

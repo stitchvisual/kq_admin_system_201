@@ -76,7 +76,7 @@ function HeroCard({
     <div
       className={cn(
         'rounded-xl p-4 border',
-        'bg-[rgba(196,168,130,0.10)] border-[rgba(196,168,130,0.28)]'
+        'bg-[var(--color-semantic-brand-primary)]/10 border-[var(--color-semantic-brand-primary)]/28'
       )}
     >
       <div className="flex items-start justify-between mb-2">
@@ -157,7 +157,7 @@ function DatesSection({ invoice, overdue }: { invoice: InvoiceWithClient; overdu
           <div className="flex justify-between items-center py-[5px]">
             <span className="text-[12px] text-muted-foreground">Last emailed</span>
             <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
-              <MailCheck size={11} className="text-[hsl(130_13%_45%)] flex-shrink-0" />
+              <MailCheck size={11} className="text-[var(--color-semantic-accent-sage)] flex-shrink-0" />
               {formatDateTime(emailedAt)}
             </span>
           </div>
@@ -195,7 +195,7 @@ function LineItemsSection({ items, total }: { items: InvoiceItem[]; total: strin
                     {isGroupShare && !isTravel && (
                       <Users
                         size={13}
-                        className="text-[hsl(130_13%_40%)] flex-shrink-0 mt-0.5"
+                        className="text-[var(--color-semantic-accent-sage)]/70 flex-shrink-0 mt-0.5"
                         aria-hidden
                       />
                     )}
@@ -284,7 +284,7 @@ function SendEmailButton({
         className={cn(
           'px-4 shrink-0',
           hasBeenSent &&
-            'border-[hsl(130_13%_75%)] text-[hsl(130_13%_35%)] hover:bg-[hsl(130_13%_95%)] hover:border-[hsl(130_13%_65%)]'
+            'border-[var(--color-semantic-accent-sage)] text-[var(--color-semantic-accent-sage)]/70 hover:bg-[var(--color-semantic-accent-sage-subtle)] hover:border-[var(--color-semantic-accent-sage)]/90'
         )}
       >
         {loading ? (

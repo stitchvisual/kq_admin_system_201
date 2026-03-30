@@ -286,7 +286,7 @@ export function DateRangePicker({
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             'w-full h-10 px-3 rounded-lg border flex items-center justify-between gap-2',
-            'text-sm transition-all duration-200',
+            'text-sm transition-all duration-[var(--motion-duration-base)]',
             'border-[var(--color-chip-border)] bg-card',
             (isSingle ? startDate : start) ? 'text-foreground' : 'text-muted-foreground',
             'hover:bg-[var(--color-chip-bg-hover)] focus:ring-2 focus:ring-primary/20 focus:border-primary'
@@ -306,7 +306,7 @@ export function DateRangePicker({
           </div>
           <ChevronRight
             size={16}
-            className={cn('text-muted-foreground shrink-0 transition-transform duration-200', isOpen && 'rotate-90')}
+            className={cn('text-muted-foreground shrink-0 transition-transform duration-[var(--motion-duration-base)]', isOpen && 'rotate-90')}
           />
         </button>
       )}
@@ -314,7 +314,7 @@ export function DateRangePicker({
       {isOpen && (
         <div
           className={cn(
-            'overflow-hidden animate-in fade-in-0 duration-200',
+            'overflow-hidden animate-in fade-in-0 duration-[var(--motion-duration-base)]',
             !inline && 'absolute left-0 md:left-auto md:right-0 z-50 mt-2 rounded-xl shadow-lg border'
           )}
           style={{

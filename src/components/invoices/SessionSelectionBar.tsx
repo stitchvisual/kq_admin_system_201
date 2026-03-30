@@ -49,7 +49,7 @@ export function SessionSelectionBar({
             <button
               onClick={onSelectAll}
               disabled={generating}
-              className="h-7 px-2.5 rounded-md border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[11px] font-medium text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)] transition-colors disabled:opacity-50 flex items-center gap-1"
+              className="h-7 px-2.5 rounded-md border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] text-[11px] font-medium text-[var(--color-semantic-text-primary)] hover:bg-[var(--color-semantic-border-default)] transition-colors disabled:opacity-50 flex items-center gap-1"
             >
               <CheckSquare size={12} />
               All
@@ -57,7 +57,7 @@ export function SessionSelectionBar({
             <button
               onClick={onDeselectAll}
               disabled={generating}
-              className="h-7 px-2.5 rounded-md border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[11px] font-medium text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)] transition-colors disabled:opacity-50 flex items-center gap-1"
+              className="h-7 px-2.5 rounded-md border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] text-[11px] font-medium text-[var(--color-semantic-text-primary)] hover:bg-[var(--color-semantic-border-default)] transition-colors disabled:opacity-50 flex items-center gap-1"
             >
               <Square size={12} />
               None
@@ -100,7 +100,7 @@ export function SessionSelectionBar({
             <button
               onClick={onPreview}
               disabled={!hasSelection || generating}
-              className="h-9 px-4 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-sm font-medium text-[hsl(145_15%_28%)] hover:bg-[hsl(42_26%_87%)] disabled:opacity-50 transition-colors"
+              className="h-9 px-4 rounded-lg border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] text-sm font-medium text-[var(--color-semantic-text-primary)] hover:bg-[var(--color-semantic-border-default)] disabled:opacity-50 transition-colors"
             >
               Preview
             </button>
@@ -111,7 +111,7 @@ export function SessionSelectionBar({
             disabled={!hasSelection || generating}
             className={cn(
               'h-9 px-5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all',
-              'bg-[hsl(var(--color-primary))] text-white shadow-soft',
+              'bg-[var(--color-semantic-brand-primary)] text-white shadow-soft',
               'hover:opacity-90 hover:shadow-lift',
               'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none'
             )}

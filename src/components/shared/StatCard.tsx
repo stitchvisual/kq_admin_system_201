@@ -1,12 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import {
-  motion,
-  useMotionValue,
-  useSpring,
-  useMotionValueEvent,
-} from 'framer-motion';
+import { motion, useMotionValue, useSpring, useMotionValueEvent } from 'framer-motion';
 import { colors, radii, typography, shadows } from '@/styles/botanical';
 
 function formatAudFromCents(cents: number): string {
@@ -26,7 +21,7 @@ function AnimatedCentsValue({ cents }: { cents: number }) {
     motionVal.set(cents);
   }, [cents, motionVal]);
 
-  useMotionValueEvent(spring, 'change', (latest) => {
+  useMotionValueEvent(spring, 'change', latest => {
     setDisplay(formatAudFromCents(Math.round(latest)));
   });
 
@@ -84,23 +79,17 @@ export function StatCard({
     textDecoration: 'none',
   };
 
-  const hoverAnimation =
-    interactive
-      ? {
-          y: -2,
-          scale: 1.02,
-          boxShadow: highlight
-            ? `0 0 0 2px ${color}50, 0 4px 16px -2px rgba(62,44,28,0.13)`
-            : `inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px -2px rgba(62,44,28,0.13)`,
-        }
-      : undefined;
+  const hoverAnimation = interactive
+    ? {
+        y: -2,
+        scale: 1.02,
+        boxShadow: highlight
+          ? `0 0 0 2px ${color}50, 0 4px 16px -2px rgba(62,44,28,0.13)`
+          : `inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 16px -2px rgba(62,44,28,0.13)`,
+      }
+    : undefined;
 
-  const valueNode =
-    valueCents !== undefined ? (
-      <AnimatedCentsValue cents={valueCents} />
-    ) : (
-      value
-    );
+  const valueNode = valueCents !== undefined ? <AnimatedCentsValue cents={valueCents} /> : value;
 
   const content = (
     <>
@@ -211,8 +200,8 @@ export function StatCardSkeleton({ count = 4 }: { count?: number }) {
           style={{
             padding: '1rem 1.25rem',
             borderRadius: 10,
-            background: 'hsl(47 22% 94%)',
-            border: '1px solid hsl(37 18% 89%)',
+            background: 'var(--color-semantic-background-muted)',
+            border: '1px solid var(--color-semantic-border-default)',
             minHeight: 88,
           }}
         />

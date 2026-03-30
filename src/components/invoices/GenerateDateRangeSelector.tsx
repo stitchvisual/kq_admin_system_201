@@ -73,9 +73,9 @@ export function GenerateDateRangeSelector({
           onClick={() => setPickerOpen(!pickerOpen)}
           className={cn(
             'flex-1 min-w-0 h-10 px-3 rounded-lg border flex items-center justify-between gap-2 text-left',
-            'border-[hsl(34_22%_74%)] bg-card',
+            'border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-base)]',
             startDate ? 'text-foreground' : 'text-muted-foreground',
-            'hover:bg-[hsl(42_26%_98%)] focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors'
+            'hover:bg-[var(--color-semantic-background-subtle)] focus:ring-2 focus:ring-[var(--color-semantic-accent-sage)]/20 focus:border-[var(--color-semantic-accent-sage)] transition-colors'
           )}
         >
           <span className="flex items-center gap-2 min-w-0">
@@ -91,7 +91,7 @@ export function GenerateDateRangeSelector({
 
       {/* Calendar popover - compact width, doesn't stretch full container */}
       {pickerOpen && (
-        <div className="w-max max-w-full rounded-xl border border-[hsl(34_22%_74%)] bg-card shadow-lg overflow-hidden">
+        <div className="w-max max-w-full rounded-xl border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-base)] shadow-lg overflow-hidden">
           <DateRangePicker
             startDate={startDate}
             endDate={endDate}

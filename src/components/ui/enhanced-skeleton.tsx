@@ -232,8 +232,8 @@ export function SkeletonClientDetail({ className }: SkeletonClientDetailProps) {
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         {/* Client hero card */}
         <div 
-          className="flex items-center gap-3 rounded-xl p-4 border animate-in fade-in-0 zoom-in-[0.98] duration-200"
-          style={{ background: 'hsl(130 13% 50% / 0.08)', borderColor: 'hsl(130 13% 50% / 0.2)' }}
+          className="flex items-center gap-3 rounded-xl p-4 border animate-in fade-in-0 zoom-in-[0.98] duration-[var(--motion-duration-base)]"
+          style={{ background: 'var(--color-semantic-accent-sage-subtle)', borderColor: 'var(--color-semantic-accent-sage)' }}
         >
           <div className="w-10 h-10 rounded-full bg-muted/30 animate-pulse flex-shrink-0" />
           <div className="flex-1 space-y-2">
@@ -326,8 +326,8 @@ export function SkeletonAppointmentDetail({ className }: SkeletonAppointmentDeta
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         {/* Session hero card */}
         <div 
-          className="flex items-center gap-3 rounded-xl p-4 border animate-in fade-in-0 zoom-in-[0.98] duration-200"
-          style={{ background: 'hsl(200 20% 50% / 0.08)', borderColor: 'hsl(200 20% 50% / 0.2)' }}
+          className="flex items-center gap-3 rounded-xl p-4 border animate-in fade-in-0 zoom-in-[0.98] duration-[var(--motion-duration-base)]"
+          style={{ background: 'var(--color-semantic-background-subtle)', borderColor: 'var(--color-semantic-border-default)' }}
         >
           <div className="w-10 h-10 rounded-full bg-muted/30 animate-pulse flex-shrink-0 flex items-center justify-center">
             <Users size={16} className="text-muted-foreground/50" />
