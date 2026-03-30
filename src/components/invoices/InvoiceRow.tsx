@@ -115,11 +115,20 @@ export function InvoiceRow({
     <motion.div
       className={cn(
         'invoice-row grid grid-cols-[40px_120px_1fr_100px_100px_120px_100px_140px] gap-4 px-4 py-[0.85rem]',
-        'border-b border-primary/80 items-center cursor-pointer'
+        'border-b border-[var(--color-semantic-border-default)] items-center cursor-pointer',
+        'transition-colors duration-200 ease-smooth'
       )}
       variants={fadeUp}
-      whileHover={{ backgroundColor: 'var(--color-semantic-accent-sage-subtle)' }}
-      style={{ background: selected ? 'var(--color-semantic-accent-sage-subtle)' : undefined }}
+      whileHover={{ 
+        backgroundColor: 'var(--color-semantic-background-subtle)',
+        transform: 'translateY(-0.5px)'
+      }}
+      whileTap={{ scale: 0.998 }}
+      style={{ 
+        background: selected 
+          ? 'var(--color-semantic-accent-sage-subtle)' 
+          : undefined 
+      }}
       onClick={onClick}
     >
       <input
@@ -193,7 +202,7 @@ export function InvoiceRow({
               onIssue();
             }}
             disabled={actionLoading}
-            className="h-7 px-3 rounded-md bg-sky-600 text-white text-[11.5px] font-semibold flex items-center gap-1 hover:bg-sky-700 disabled:opacity-50 transition-colors"
+            className="h-7 px-3 rounded-[var(--radius-button)] bg-[var(--color-semantic-brand-primary)] text-white text-[11.5px] font-semibold flex items-center gap-1 hover:bg-[var(--color-semantic-brand-hover)] disabled:opacity-50 transition-all duration-200 ease-smooth shadow-sm hover:shadow-md"
           >
             <Send size={13} /> Issue
           </button>
@@ -206,7 +215,7 @@ export function InvoiceRow({
               onMarkPaid();
             }}
             disabled={actionLoading}
-            className="w-7 h-7 rounded-md bg-emerald-600 text-white flex items-center justify-center hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+            className="w-7 h-7 rounded-[var(--radius-button)] bg-[var(--status-completed-text)] text-white flex items-center justify-center hover:opacity-90 disabled:opacity-50 transition-all duration-200 ease-smooth shadow-sm"
             title="Mark as Paid"
           >
             {actionLoading ? (
@@ -223,7 +232,7 @@ export function InvoiceRow({
             onDownload();
           }}
           disabled={!!pdfLoading}
-          className="w-7 h-7 rounded-md border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] flex items-center justify-center text-[var(--color-semantic-text-secondary)] hover:bg-[var(--color-semantic-border-default)] disabled:opacity-50 transition-colors"
+          className="w-7 h-7 rounded-[var(--radius-button)] border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] flex items-center justify-center text-[var(--color-semantic-text-secondary)] hover:bg-[var(--color-semantic-border-default)] hover:translate-y-[-0.5px] disabled:opacity-50 transition-all duration-200 ease-smooth shadow-soft"
           title="Download PDF"
         >
           {pdfLoading ? (
@@ -249,7 +258,7 @@ export function InvoiceRow({
             }
             setShowOverflow(v => !v);
           }}
-          className="w-7 h-7 rounded-md border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] flex items-center justify-center text-[var(--color-semantic-text-secondary)] hover:bg-[var(--color-semantic-border-default)] transition-colors"
+          className="w-7 h-7 rounded-[var(--radius-button)] border border-[var(--color-semantic-border-default)] bg-[var(--color-semantic-background-muted)] flex items-center justify-center text-[var(--color-semantic-text-secondary)] hover:bg-[var(--color-semantic-border-default)] hover:translate-y-[-0.5px] transition-all duration-200 ease-smooth"
         >
           <MoreHorizontal size={14} />
         </button>
