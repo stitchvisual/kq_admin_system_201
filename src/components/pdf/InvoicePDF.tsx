@@ -18,19 +18,24 @@ const BUSINESS_ACCOUNT_NUMBER = process.env.NEXT_PUBLIC_BUSINESS_ACCOUNT_NUMBER 
 const BUSINESS_ACCOUNT_NAME = process.env.NEXT_PUBLIC_BUSINESS_ACCOUNT_NAME || '';
 const NDIS_REGISTRATION = process.env.NEXT_PUBLIC_NDIS_REGISTRATION_NUMBER || '';
 
-// Design tokens — 8pt grid, clear type hierarchy
+// Design tokens — Stitch Tokens system
 const tokens = {
   color: {
-    text: '#111827',        // Primary — heaviest
-    textSecondary: '#374151', // Secondary — body
-    textMuted: '#6b7280',   // Tertiary — labels, meta
-    textCaption: '#9ca3af', // Caption — footer, smallest
-    border: '#e5e7eb',
-    borderStrong: '#d1d5db',
-    bgMuted: '#f9fafb',
-    bgPage: '#ffffff',
+    // Text colors from Stitch Tokens (converted to hex)
+    text: '#1e1a17',              // primary - warm black
+    textSecondary: '#6b5f52',      // secondary - mid-tone
+    textMuted: '#9a8e82',          // tertiary - stone
+    textCaption: '#c4876c',          // brand-muted - terracotta
+    border: 'rgba(139, 74, 50, 0.12)',  // default border at 12%
+    borderStrong: 'rgba(30, 26, 23, 0.15)',  // strong border at 15%
+    bgMuted: '#f4f0e8',           // subtle - parchment 100
+    bgPage: '#faf8f4',              // base - parchment 50
+    bgBrand: '#8b4a32',             // primary - terracotta 500
+    bgBrandLight: '#a35a3f',         // hover - terracotta 400
+    bgBrandMuted: '#ece7dc',          // brand-muted background
+    bgSage: '#e8ede6',              // sage-subtle accent
   },
-  // Type scale — 1.25 ratio, clear hierarchy
+  // Type scale — matching Stitch Tokens
   font: {
     caption: 8,    // Footer, smallest
     sm: 9,         // Labels, meta, table cells
@@ -43,22 +48,22 @@ const tokens = {
     '4xl': 28,     // Hero — INVOICE
   },
   fontWeight: {
-    normal: 400,
-    medium: 500,
-    semibold: 600,
-    bold: 700,
+    normal: 400,   // Regular
+    medium: 500,    // Medium - buttons, labels
+    semibold: 600,  // Semibold - strong emphasis
+    bold: 700,      // Bold - headings
   },
-  // 8pt grid — section rhythm
+  // 4px grid — matching Stitch Tokens
   space: {
-    xs: 4,   // Inline gaps
-    sm: 8,   // Tight grouping
-    md: 12,  // Within cards
-    lg: 16,  // Card padding
-    xl: 24,  // Between related sections
-    '2xl': 32,  // Between major sections
-    '3xl': 48,  // Hero → content gap
+    xs: 4,   // 1 step
+    sm: 8,   // 2 steps
+    md: 12,  // 3 steps
+    lg: 16,  // 4 steps
+    xl: 24,  // 6 steps
+    '2xl': 32,  // 8 steps
+    '3xl': 48,  // 12 steps
   },
-  radius: 6,
+  radius: 8,  // md - cards, panels
 };
 
 const styles = StyleSheet.create({
@@ -211,6 +216,10 @@ const styles = StyleSheet.create({
     borderBottom: `1px solid ${tokens.color.border}`,
     paddingVertical: tokens.space.sm,
     paddingHorizontal: tokens.space.md,
+    backgroundColor: '#ffffff',
+  },
+  tableRowAlt: {
+    backgroundColor: tokens.color.bgPage,
   },
   tableRowLast: {
     borderBottomLeftRadius: tokens.radius,
@@ -479,32 +488,41 @@ export function InvoicePDF({ invoice }: InvoicePDFProps) {
             </View>
 
             {/* Table Rows */}
-            {categoryItems.map((item, index) => (
-              <View
-                key={item.id || index}
-                style={
-                  index === categoryItems.length - 1
-                    ? [styles.tableRow, styles.tableRowLast]
-                    : styles.tableRow
-                }
-              >
-                <Text style={[styles.tableCell, styles.colDescription]}>
-                  {item.description}
-                </Text>
-                <Text style={[styles.tableCell, styles.colCode]}>
-                  {item.ndis_item_code || '-'}
-                </Text>
-                <Text style={[styles.tableCell, styles.colQuantity]}>
-                  {item.quantity}
-                </Text>
-                <Text style={[styles.tableCell, styles.colRate]}>
-                  {formatCurrency(item.unit_price)}
-                </Text>
-                <Text style={[styles.tableCell, styles.colAmount]}>
-                  {formatCurrency(parseFloat(item.quantity) * parseFloat(item.unit_price))}
-                </Text>
-              </View>
-            ))}
+            {categoryItems.map((item, index) => {
+              const isLastRow = index === categoryItems.length - 1;
+              const isAltRow = index % 2 !== 0; // Alternate every other row
+              
+              return (
+                <View
+                  key={item.id || index}
+                  style={
+                    isLastRow
+                      ? [
+                          styles.tableRow,
+                          styles.tableRowLast,
+                          ...(isAltRow ? [styles.tableRowAlt] : []),
+                        ]
+                      : [styles.tableRow, ...(isAltRow ? [styles.tableRowAlt] : [])]
+                  }
+                >
+                  <Text style={[styles.tableCell, styles.colDescription]}>
+                    {item.description}
+                  </Text>
+                  <Text style={[styles.tableCell, styles.colCode]}>
+                    {item.ndis_item_code || '-'}
+                  </Text>
+                  <Text style={[styles.tableCell, styles.colQuantity]}>
+                    {item.quantity}
+                  </Text>
+                  <Text style={[styles.tableCell, styles.colRate]}>
+                    {formatCurrency(item.unit_price)}
+                  </Text>
+                  <Text style={[styles.tableCell, styles.colAmount]}>
+                    {formatCurrency(parseFloat(item.quantity) * parseFloat(item.unit_price))}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         ))}
 
