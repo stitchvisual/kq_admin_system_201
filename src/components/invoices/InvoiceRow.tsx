@@ -116,14 +116,11 @@ export function InvoiceRow({
       className={cn(
         'invoice-row grid grid-cols-[40px_120px_1fr_100px_100px_120px_100px_140px] gap-4 px-4 py-[0.85rem]',
         'border-b border-[var(--color-semantic-border-default)] items-center cursor-pointer',
-        'transition-colors duration-200 ease-smooth'
+        'hover:bg-[var(--color-semantic-background-subtle)] hover:translate-y-[-0.5px]',
+        'active:scale-[0.998]',
+        'transition-all duration-200 ease-smooth'
       )}
       variants={fadeUp}
-      whileHover={{ 
-        backgroundColor: 'var(--color-semantic-background-subtle)',
-        transform: 'translateY(-0.5px)'
-      }}
-      whileTap={{ scale: 0.998 }}
       style={{ 
         background: selected 
           ? 'var(--color-semantic-accent-sage-subtle)' 
