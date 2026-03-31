@@ -156,7 +156,7 @@ function DatesSection({ invoice, overdue }: { invoice: InvoiceWithClient; overdu
         <MetaRow
           label="Due date"
           value={formatDate(invoice.due_date)}
-          valueClassName={overdue ? 'text-destructive font-medium' : undefined}
+          valueClassName={overdue ? 'text-[var(--color-semantic-brand-primary)] font-medium' : undefined}
         />
         {invoice.issued_at && <MetaRow label="Issued" value={formatDate(invoice.issued_at)} />}
         {invoice.paid_at && <MetaRow label="Paid" value={formatDate(invoice.paid_at)} />}

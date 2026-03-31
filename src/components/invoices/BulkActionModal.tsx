@@ -56,7 +56,7 @@ export function BulkActionModal({
   const variantStyles = {
     primary: 'bg-sky-600 hover:bg-sky-700 text-white',
     success: 'bg-emerald-600 hover:bg-emerald-700 text-white',
-    danger: 'bg-red-600 hover:bg-red-700 text-white',
+    danger: 'bg-[var(--color-semantic-brand-primary)] hover:bg-[var(--color-semantic-brand-hover)] text-white',
   };
 
   const handleConfirm = async () => {

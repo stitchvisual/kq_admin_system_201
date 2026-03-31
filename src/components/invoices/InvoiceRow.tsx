@@ -168,12 +168,12 @@ export function InvoiceRow({
         {formatDate(invoice.invoice_date)}
       </span>
       
-      <span
-        className={cn(
-          'text-[13px] flex items-center gap-1',
-          overdue ? 'text-red-600 font-semibold' : 'text-muted-foreground'
-        )}
-      >
+                  <span
+                    className={cn(
+                      'text-[11px] font-medium transition-colors',
+                      overdue ? 'text-[var(--color-semantic-brand-primary)] font-semibold' : 'text-muted-foreground'
+                    )}
+                  >
         {overdue && <Clock size={11} />}
         {formatDate(invoice.due_date)}
       </span>
@@ -305,7 +305,7 @@ export function InvoiceRow({
                           setShowOverflow(false);
                           onCancel();
                         }}
-                        className="flex w-full items-center gap-1.5 bg-[var(--color-semantic-background-muted)] px-3.5 py-2.5 text-left text-red-600 transition-colors hover:bg-[var(--color-semantic-border-default)]"
+                        className="flex w-full items-center gap-1.5 bg-[var(--color-semantic-background-muted)] px-3.5 py-2.5 text-left text-[var(--color-semantic-brand-primary)] transition-colors hover:bg-[var(--color-semantic-border-default)]"
                       >
                         <XCircle size={13} /> Cancel
                       </button>
