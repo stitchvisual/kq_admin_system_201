@@ -216,10 +216,10 @@ const styles = StyleSheet.create({
     borderBottom: `1px solid ${tokens.color.border}`,
     paddingVertical: tokens.space.sm,
     paddingHorizontal: tokens.space.md,
-    backgroundColor: '#ffffff',
+    backgroundColor: tokens.color.bgPage,
   },
   tableRowAlt: {
-    backgroundColor: tokens.color.bgPage,
+    backgroundColor: tokens.color.bgMuted,
   },
   tableRowLast: {
     borderBottomLeftRadius: tokens.radius,
