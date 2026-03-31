@@ -118,8 +118,8 @@ export default function AppointmentsPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [completing, setCompleting] = useState(false);
-  const [confirming, setConfirming] = useState(false);
-  const [completeNotes, setCompleteNotes] = useState('');
+
+
   const [panelMode, setPanelMode] = useState<PanelMode>('empty');
   const [panelVisible, setPanelVisible] = useState(false);
   const [panelClosing, setPanelClosing] = useState(false);
@@ -176,7 +176,6 @@ export default function AppointmentsPage() {
     setTimeout(() => {
       setSelectedAppointment(null);
       setPanelMode('empty');
-      setCompleteNotes('');
       setPanelClosing(false);
       setFormData({
         client_id: '',
@@ -319,6 +318,47 @@ export default function AppointmentsPage() {
   // CRUD
   // ============================================================================
 
+  const handleQuickBill = async () => {
+    if (!selectedAppointment) return;
+    
+    // For uninvoiced appointments, build the appointment_ids array
+    // Group sessions use composite IDs (apptId-clientId) for each participant
+    // Solo sessions use just the appointment ID
+    const appointmentIds = selectedAppointment.is_group
+      ? selectedAppointment.participants?.map(p => `${selectedAppointment.id}-${p.client_id}`) || []
+      : [selectedAppointment.id];
+    
+    // Use default due date (14 days from now)
+    const defaultDue = new Date();
+    defaultDue.setDate(defaultDue.getDate() + 14);
+    const dueDateStr = formatDateForInput(defaultDue);
+    
+    try {
+      const res = await fetch('/api/invoices/bill-now', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          client_id: selectedAppointment.client_id || '',
+          due_date: dueDateStr,
+          auto_email: false,
+          appointment_ids: appointmentIds,
+        }),
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Invoice ${data.data.invoice_number} created and issued`);
+        await mutateAppointments();
+        closePanel();
+      } else {
+        toast.error(data.error?.message || 'Failed to generate invoice');
+      }
+    } catch (error) {
+      console.error('Failed to quick bill:', error);
+      toast.error('Failed to generate invoice');
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -398,14 +438,14 @@ export default function AppointmentsPage() {
     }
   };
 
-  const handleComplete = async () => {
+  const handleComplete = async (notes: string) => {
     if (!selectedAppointment) return;
     setCompleting(true);
     try {
       const res = await fetch(`/api/appointments/${selectedAppointment.id}/complete`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: completeNotes }),
+        body: JSON.stringify({ notes }),
       });
       const data = await res.json();
       if (data.success) {
@@ -423,30 +463,7 @@ export default function AppointmentsPage() {
     }
   };
 
-  const handleConfirm = async () => {
-    if (!selectedAppointment) return;
-    setConfirming(true);
-    try {
-      const res = await fetch(`/api/appointments/${selectedAppointment.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'confirmed' }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        toast.success('Appointment confirmed');
-        await mutateAppointments();
-        setSelectedAppointment(data.data);
-        setPanelMode('view');
-      } else {
-        toast.error(data.message || 'Failed to confirm');
-      }
-    } catch (e) {
-      toast.error('Failed to confirm');
-    } finally {
-      setConfirming(false);
-    }
-  };
+  // Removed handleConfirm function - confirm step is now merged into complete action
 
   // ============================================================================
   // MINI CALENDAR
@@ -645,12 +662,8 @@ export default function AppointmentsPage() {
                 onClose={closePanel}
                 onEdit={openEditMode}
                 onDelete={() => setPanelMode('deleteConfirm')}
-                onComplete={() => {
-                  setCompleteNotes('');
-                  setPanelMode('complete');
-                }}
-                onConfirm={handleConfirm}
-                confirming={confirming}
+                onComplete={() => setPanelMode('complete')}
+                onQuickBill={handleQuickBill}
                 completing={completing}
                 onToggle={() => setPanelCollapsed(!panelCollapsed)}
                 collapsed={panelCollapsed}
@@ -684,8 +697,7 @@ export default function AppointmentsPage() {
             {panelMode === 'complete' && selectedAppointment && (
               <CompletePanel
                 appt={selectedAppointment}
-                notes={completeNotes}
-                setNotes={setCompleteNotes}
+
                 onClose={closePanel}
                 onBack={() => setPanelMode('view')}
                 onComplete={handleComplete}
@@ -739,12 +751,8 @@ export default function AppointmentsPage() {
                   onClose={closePanel}
                   onEdit={openEditMode}
                   onDelete={() => setPanelMode('deleteConfirm')}
-                  onComplete={() => {
-                    setCompleteNotes('');
-                    setPanelMode('complete');
-                  }}
-                  onConfirm={handleConfirm}
-                  confirming={confirming}
+                  onComplete={() => setPanelMode('complete')}
+                  onQuickBill={handleQuickBill}
                   completing={completing}
                   onToggle={() => setPanelCollapsed(!panelCollapsed)}
                   collapsed={panelCollapsed}
@@ -778,8 +786,7 @@ export default function AppointmentsPage() {
               {panelMode === 'complete' && selectedAppointment && (
                 <CompletePanel
                   appt={selectedAppointment}
-                  notes={completeNotes}
-                  setNotes={setCompleteNotes}
+
                   onClose={closePanel}
                   onBack={() => setPanelMode('view')}
                   onComplete={handleComplete}
@@ -842,6 +849,59 @@ const ACCENT = {
 } as const;
 
 // ============================================================================
+// NEXT ACTION SYSTEM
+// ============================================================================
+
+type NextAction = {
+  label: string;
+  icon: React.ElementType;
+  action: () => void;
+  variant?: 'primary' | 'secondary';
+};
+
+function getNextAction(
+  appt: AppointmentWithClient,
+  onComplete: () => void,
+  onPrepareInvoice: () => void,
+  onQuickBill: () => void,
+): NextAction | null {
+  const { status, invoiced } = appt;
+
+  if (status === 'cancelled') {
+    return null;
+  }
+
+  if (status === 'completed') {
+    if (invoiced) {
+      // Already invoiced - no action needed
+      return null;
+    }
+    // Completed but not invoiced - show quick bill option
+    return {
+      label: 'Quick Bill',
+      icon: FileText,
+      action: onQuickBill,
+      variant: 'primary',
+    };
+  }
+
+  // pending or confirmed - mark complete
+  return {
+    label: 'Mark Complete',
+    icon: CheckCircle,
+    action: onComplete,
+    variant: 'primary',
+  };
+}
+
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+  }).format(amount);
+}
+
+// ============================================================================
 // VIEW PANEL
 // ============================================================================
 
@@ -852,11 +912,9 @@ function ViewPanel({
   onEdit,
   onDelete,
   onComplete,
-  onConfirm,
-  confirming,
-  completing,
   onToggle,
   collapsed,
+  onQuickBill,
 }: {
   appt: AppointmentWithClient;
   clients: Client[];
@@ -864,255 +922,245 @@ function ViewPanel({
   onEdit: () => void;
   onDelete: () => void;
   onComplete: () => void;
-  onConfirm: () => void;
-  confirming: boolean;
-  completing: boolean;
   onToggle?: () => void;
   collapsed?: boolean;
+  onQuickBill?: () => void;
 }) {
-  const isPending = appt.status === 'pending';
-  const isConfirmed = appt.status === 'confirmed';
-  const isCompleted = appt.status === 'completed';
-  const isCancelled = appt.status === 'cancelled';
-  const isGroup = appt.is_group;
-  const displayName = isGroup
-    ? `Group Session (${appt.participants?.length || appt.group_size || 0} participants)`
-    : (appt.client?.name ?? 'Unknown Client');
-  const initials = isGroup
-    ? ''
-    : (appt.client?.name
-        ?.split(' ')
-        .map(n => n[0])
-        .join('')
-        .slice(0, 2)
-        .toUpperCase() ?? '?');
+  const palette = getClientPalette(appt.client_id || appt.title || 'unknown');
 
-  const viewAccent = isCancelled
-    ? ACCENT.cancel
-    : isCompleted
-      ? ACCENT.viewCompleted
-      : isConfirmed
-        ? ACCENT.viewConfirmed
-        : ACCENT.viewPending;
-  const heroPalette = isCancelled
-    ? { dot: '#a88c9e', bg: 'rgba(168,140,158,0.14)', border: 'rgba(168,140,158,0.35)' }
-    : isCompleted
-      ? { dot: '#5a8a60', bg: 'rgba(90,138,96,0.12)', border: 'rgba(90,138,96,0.28)' }
-      : isGroup
-        ? { dot: GROUP_PALETTE.dot, bg: GROUP_PALETTE.bg, border: 'rgba(107,163,152,0.35)' }
-        : (() => {
-            const p = getClientPalette(appt.client_id || appt.id);
-            return { dot: p.dot, bg: p.bg, border: `${p.dot}45` };
-          })();
+  const handlePrepareInvoice = () => {
+    // Navigate to invoices page with client filter
+    const params = new URLSearchParams({
+      tab: 'generate',
+      clientId: appt.client_id || '',
+    });
+    window.location.href = `/admin/invoices?${params.toString()}`;
+  };
 
-  const formattedDate = new Date(appt.starts_at).toLocaleDateString('en-AU', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  });
-  const formattedTimeRange = formatTimeRange(new Date(appt.starts_at), new Date(appt.ends_at));
-  const formattedDuration = formatDuration(new Date(appt.starts_at), new Date(appt.ends_at));
+  const nextAction = getNextAction(appt, onComplete, handlePrepareInvoice, onQuickBill || (() => {}));
+
+  const start = new Date(appt.starts_at);
+  const end = new Date(appt.ends_at);
+  const durationMs = end.getTime() - start.getTime();
+  const durationHrs = durationMs / (1000 * 60 * 60);
+  const isOvernight = formatDateForInput(start) !== formatDateForInput(end);
+
+  // Calculate estimated total for inline preview
+  let estimatedTotal = 0;
+  let hourlyRate = 0;
+  let travelKmCost = 0;
+
+  if (appt.rate_code) {
+    const matchingRate = rateCodes?.find(rc => rc.code === appt.rate_code);
+    if (matchingRate) {
+      hourlyRate = parseFloat(matchingRate.price);
+      estimatedTotal = hourlyRate * durationHrs;
+    }
+  }
+
+  if (appt.travel_km) {
+    travelKmCost = parseFloat(String(appt.travel_km)) * 0.85; // Standard travel rate
+    estimatedTotal += travelKmCost;
+  }
+
+  const statusColor = appt.status === 'completed'
+    ? { bg: 'var(--status-completed-bg)', text: 'var(--status-completed-text)', dot: 'var(--status-completed-dot)' }
+    : appt.status === 'confirmed'
+    ? { bg: 'var(--status-confirmed-bg)', text: 'var(--status-confirmed-text)', dot: 'var(--status-confirmed-dot)' }
+    : { bg: 'var(--status-pending-bg)', text: 'var(--status-pending-text)', dot: 'var(--status-pending-dot)' };
+
+  const clientName = appt.is_group
+    ? 'Group Session'
+    : appt.client?.name ?? 'Unknown';
 
   return (
     <div className="flex flex-col h-full min-h-0 bg-card overflow-hidden">
       <SheetHandle className="md:hidden" />
-      <div
-        className="h-[3px] w-full flex-shrink-0"
-        style={{ background: viewAccent }}
-        aria-hidden
-      />
+
+      <div className="h-[3px] w-full flex-shrink-0" style={{ background: palette.dot }} />
 
       <PanelHeader
+        showAccentBar={false}
         breadcrumb="Schedule"
         title="Session details"
-        showAccentBar={false}
-        titleColorClass="text-foreground"
         onClose={onClose}
         onToggle={onToggle}
         collapsed={collapsed}
       />
 
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
+        {/* Hero Section */}
         <div
           className={cn(
-            'flex items-center gap-3 rounded-xl p-4 border',
-            'animate-in fade-in-0 zoom-in-[0.98] duration-200',
+            'rounded-xl p-4 border',
+            'bg-gradient-to-br from-card to-mutedBg/40',
+            'border-[var(--color-semantic-border-default)]'
           )}
-          style={{ background: heroPalette.bg, borderColor: heroPalette.border }}
         >
-          <div
-            className="w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center"
-            style={{ background: heroPalette.dot }}
-          >
-            {isGroup ? (
-              <Users size={16} color="#fff" />
-            ) : (
-              <span className="text-[13px] font-medium text-white">{initials}</span>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-heading text-[15px] font-semibold text-foreground truncate mb-1">
-              {displayName}
-            </p>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <StatusPill status={appt.status} />
-              {isGroup && (
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[rgba(107,163,152,0.18)] text-[#1e4a44]">
-                  Group
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-heading text-[16px] font-semibold text-foreground leading-tight mb-1">
+                {clientName}
+              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                {appt.is_group && (
+                  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-[var(--status-group-bg)] text-[var(--status-group-text)] flex items-center gap-1">
+                    <Users size={9} />
+                    {appt.participants?.length || appt.group_size || 0}
+                  </span>
+                )}
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize"
+                  style={{ background: statusColor.bg, color: statusColor.text }}
+                >
+                  {appt.status}
                 </span>
-              )}
-              {appt.invoiced && (
-                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[rgba(172,163,118,0.18)] text-[#7a6a30]">
-                  Invoiced
-                </span>
-              )}
+                {appt.invoiced && (
+                  <span className="text-[10px] font-semibold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <FileText size={8} />
+                    Invoiced
+                  </span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {isGroup && appt.participants && appt.participants.length > 0 && (
-          <div>
-            <SectionLabel>Participants</SectionLabel>
-            <div className="divide-y divide-primary/50">
-              {appt.participants.map((p, idx) => {
-                const client = clients.find(c => c.id === p.client_id);
-                const cp = getClientPalette(p.client_id);
-                const splitPercent = Math.round(parseFloat(p.split_rate) * 100);
-                return (
-                  <div key={idx} className="flex items-center gap-2 py-[6px]">
-                    <div
-                      className="w-6 h-6 rounded-full flex-shrink-0 flex items-center justify-center"
-                      style={{ background: cp.dot }}
-                    >
-                      <span className="text-[10px] font-medium text-white">
-                        {client?.name
-                          ?.split(' ')
-                          .map(n => n[0])
-                          .join('')
-                          .slice(0, 2)
-                          .toUpperCase() ?? '?'}
-                      </span>
-                    </div>
-                    <span className="flex-1 text-[12px] font-medium text-foreground truncate">
-                      {client?.name ?? 'Unknown'}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground font-medium">
-                      {splitPercent}%
-                    </span>
-                  </div>
-                );
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-[13px] text-foreground">
+              <Calendar size={13} className="text-muted-foreground" />
+              {start.toLocaleDateString('en-AU', {
+                weekday: 'short',
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
               })}
             </div>
+            <div className="flex items-center gap-2 text-[13px] text-foreground">
+              <Clock size={13} className="text-muted-foreground" />
+              {formatTimeRange(start, end)}
+              {isOvernight && (
+                <span className="text-[11px] text-muted-foreground ml-1">
+                  (Overnight)
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Inline Invoice Preview - show if not pending/cancelled */}
+        {appt.status !== 'pending' && appt.status !== 'cancelled' && (
+          <div>
+            <SectionLabel>Invoice Preview</SectionLabel>
+            <div
+              className={cn(
+                'rounded-lg p-4 border',
+                'bg-gradient-to-br from-[var(--color-semantic-brand-primary)]/6 to-[var(--color-semantic-brand-primary)]/3',
+                'border-[var(--color-semantic-brand-primary)]/25'
+              )}
+            >
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-[12px] text-muted-foreground">Duration</span>
+                  <span className="text-[12px] font-medium text-foreground">
+                    {formatDuration(durationHrs)}
+                  </span>
+                </div>
+                {hourlyRate > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[12px] text-muted-foreground">Rate</span>
+                    <span className="text-[12px] font-medium text-foreground">
+                      ${hourlyRate.toFixed(2)}/hr
+                    </span>
+                  </div>
+                )}
+                {appt.travel_km && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-[12px] text-muted-foreground">Travel</span>
+                    <span className="text-[12px] font-medium text-foreground">
+                      {appt.travel_km} km × $0.85 = ${travelKmCost.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                <div className="h-px bg-[var(--color-semantic-border-default)] my-1" />
+                <div className="flex justify-between items-center">
+                  <span className="text-[12px] font-semibold text-foreground">Estimated Total</span>
+                  <span className="text-[15px] font-bold text-foreground">
+                    {formatCurrency(estimatedTotal)}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
+        {/* Details Section */}
         <div>
-          <SectionLabel>Session</SectionLabel>
-          <div className="divide-y divide-primary/50">
-            <MetaRow label="Date" value={formattedDate} />
-            <MetaRow label="Time" value={formattedTimeRange} />
-            <MetaRow label="Duration" value={formattedDuration} />
+          <SectionLabel>Details</SectionLabel>
+          <div className="space-y-0 divide-y divide-primary/50">
+            <MetaRow
+              label="Status"
+              value={appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+            />
             {appt.rate_code && (
               <MetaRow
-                label="Rate code"
-                value={
-                  appt.rate_code === OVERNIGHT_SLEEPOVER_NDIS_CODE
-                    ? `${appt.rate_code} (Night-Time Sleepover)`
-                    : appt.rate_code
-                }
+                label="Rate Code"
+                value={appt.rate_code}
               />
             )}
-            {appt.invoiced && appt.invoice_ref && (
-              <MetaRow label="Invoice" value={appt.invoice_ref} />
+            <MetaRow
+              label="Duration"
+              value={formatDuration(durationHrs)}
+            />
+            {isOvernight && (
+              <MetaRow
+                label="End Date"
+                value={end.toLocaleDateString('en-AU', {
+                  weekday: 'short',
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              />
             )}
           </div>
         </div>
 
+        {/* Notes */}
         {appt.notes && (
-          <div className="rounded-lg bg-soft-cream border border-primary p-3">
+          <div>
             <SectionLabel>Notes</SectionLabel>
-            <p className="text-[12px] text-muted-foreground leading-relaxed m-0">{appt.notes}</p>
+            <div className="rounded-lg bg-muted/60 border border-[var(--color-semantic-border-default)] p-3">
+              <p className="text-[12px] text-secondary leading-relaxed whitespace-pre-wrap">
+                {appt.notes}
+              </p>
+            </div>
           </div>
-        )}
-
-        {appt.invoiced && (
-          <div className="rounded-lg bg-[rgba(172,163,118,0.12)] border border-[rgba(172,163,118,0.25)] px-3 py-2.5">
-            <p className="text-[12px] text-[#5a5225] m-0">
-              This session is invoiced and cannot be modified.
-              {appt.invoice_ref && <span className="font-medium ml-1">{appt.invoice_ref}</span>}
-            </p>
-          </div>
-        )}
-
-        {!appt.invoiced && !isCancelled && (
-          <PanelFooter>
-            {isPending && (
-              <>
-                <PrimaryBtn
-                  onClick={onConfirm}
-                  loading={confirming}
-                  loadingLabel="Confirming…"
-                  style={{ background: ACCENT.viewConfirmed }}
-                  className="hover:opacity-90"
-                >
-                  <CheckCircle size={14} />
-                  Confirm appointment
-                </PrimaryBtn>
-                <div className="flex gap-2">
-                  <SecondaryBtn type="button" onClick={onEdit}>
-                    <Pencil size={13} />
-                    Reschedule
-                  </SecondaryBtn>
-                  <DangerBtn type="button" onClick={onDelete}>
-                    <Trash2 size={13} />
-                    Cancel
-                  </DangerBtn>
-                </div>
-              </>
-            )}
-            {isConfirmed && (
-              <>
-                <PrimaryBtn
-                  onClick={onComplete}
-                  loading={completing}
-                  loadingLabel="Saving…"
-                  style={{ background: ACCENT.viewCompleted }}
-                  className="hover:opacity-90"
-                >
-                  <CheckCircle size={14} />
-                  Mark complete
-                </PrimaryBtn>
-                <div className="flex gap-2">
-                  <SecondaryBtn type="button" onClick={onEdit}>
-                    <Pencil size={13} />
-                    Reschedule
-                  </SecondaryBtn>
-                  <DangerBtn type="button" onClick={onDelete}>
-                    <Trash2 size={13} />
-                    Cancel
-                  </DangerBtn>
-                </div>
-              </>
-            )}
-            {isCompleted && (
-              <Link
-                href="/admin/invoices?tab=generate"
-                className={cn(
-                  'h-11 md:h-10 w-full rounded-lg border border-primary bg-card',
-                  'text-[12px] font-medium text-foreground/70 flex items-center justify-center gap-1.5',
-                  'hover:bg-muted hover:text-foreground transition-all duration-150',
-                )}
-              >
-                <FileText size={13} />
-                Go to invoices
-              </Link>
-            )}
-          </PanelFooter>
         )}
 
         <div className="h-2" />
       </div>
+
+      <PanelFooter>
+        {nextAction && (
+          <PrimaryBtn
+            onClick={nextAction.action}
+            className={cn(nextAction.variant === 'secondary' && 'bg-[var(--color-semantic-brand-muted)]')}
+          >
+            <nextAction.icon size={14} />
+            {nextAction.label}
+          </PrimaryBtn>
+        )}
+        <div className="flex gap-2">
+          <SecondaryBtn type="button" onClick={onEdit}>
+            <Pencil size={13} />
+            Edit
+          </SecondaryBtn>
+          <DangerBtn type="button" onClick={onDelete}>
+            <Trash2 size={13} />
+            Delete
+          </DangerBtn>
+        </div>
+      </PanelFooter>
     </div>
   );
 }
@@ -1619,8 +1667,6 @@ function DeletePanel({
 
 function CompletePanel({
   appt,
-  notes,
-  setNotes,
   onClose,
   onBack,
   onComplete,
@@ -1629,15 +1675,14 @@ function CompletePanel({
   collapsed,
 }: {
   appt: AppointmentWithClient;
-  notes: string;
-  setNotes: (n: string) => void;
   onClose: () => void;
   onBack: () => void;
-  onComplete: () => void;
+  onComplete: (notes: string) => void;
   completing: boolean;
   onToggle?: () => void;
   collapsed?: boolean;
 }) {
+  const [notes, setNotes] = useState('');
   const isGroup = appt.is_group;
   const displayName = isGroup
     ? `Group Session (${appt.participants?.length || 0} participants)`
@@ -1728,7 +1773,7 @@ function CompletePanel({
         <PanelFooter>
           <div className="flex gap-2">
             <PrimaryBtn
-              onClick={onComplete}
+              onClick={() => onComplete(notes)}
               loading={completing}
               loadingLabel="Saving…"
               style={{ background: ACCENT.complete }}

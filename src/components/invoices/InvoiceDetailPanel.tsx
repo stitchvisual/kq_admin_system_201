@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { ContextPanel } from '@/components/panels/ContextPanel';
 import { motion } from 'framer-motion';
 import { Send, CheckCircle, Download, XCircle, Loader2, Mail, MailCheck, Users } from 'lucide-react';
 import { slideInRight, fadeUp, staggerContainer } from '@/lib/motion/variants';
@@ -473,71 +474,60 @@ export function InvoiceDetailPanel({
   const notesTrimmed = invoice.notes?.trim();
 
   return (
-    <motion.div
-      className="flex flex-col h-full min-h-0 bg-card overflow-hidden"
-      variants={slideInRight}
-      initial="hidden"
-      animate="visible"
-      exit="exit"
+    <ContextPanel
+      breadcrumb="Invoices"
+      title="Invoice details"
+      accentClass="bg-[var(--panel-accent-invoice)]"
+      showAccentBar={true}
+      isOpen={true}
+      onClose={onClose}
+      footer={
+        <ActionButtons
+          invoice={invoice}
+          onIssue={onIssue}
+          onMarkPaid={onMarkPaid}
+          onCancel={onCancel}
+          onDownload={onDownload}
+          onSendEmail={onSendEmail}
+          actionLoading={actionLoading}
+          pdfLoading={pdfLoading}
+          emailLoading={emailLoading}
+        />
+      }
     >
-      <SheetHandle className="md:hidden" />
+      <motion.div
+        variants={fadeUp}
+        initial="hidden"
+        animate="visible"
+        transition={{ delay: 0.05 }}
+      >
+        <HeroCard invoice={invoice} overdue={!!overdue} daysOverdue={daysOverdue} />
+      </motion.div>
 
-      <div className="h-[3px] w-full bg-[var(--panel-accent-invoice)] flex-shrink-0" aria-hidden />
-
-      <PanelHeader
-        showAccentBar={false}
-        breadcrumb="Invoices"
-        title="Invoice details"
-        onClose={onClose}
-      />
-
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
-        <motion.div
-          variants={fadeUp}
-          initial="hidden"
-          animate="visible"
-          transition={{ delay: 0.05 }}
-        >
-          <HeroCard invoice={invoice} overdue={!!overdue} daysOverdue={daysOverdue} />
+      <motion.div
+        className="space-y-4"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
+        <motion.div variants={fadeUp}>
+          <DatesSection invoice={invoice} overdue={!!overdue} />
         </motion.div>
 
-        <motion.div
-          className="space-y-4"
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-        >
+        {invoice.items && invoice.items.length > 0 && (
           <motion.div variants={fadeUp}>
-            <DatesSection invoice={invoice} overdue={!!overdue} />
+            <LineItemsSection items={invoice.items} total={String(invoice.total)} />
           </motion.div>
+        )}
 
-          {invoice.items && invoice.items.length > 0 && (
-            <motion.div variants={fadeUp}>
-              <LineItemsSection items={invoice.items} total={String(invoice.total)} />
-            </motion.div>
-          )}
-
-          {notesTrimmed && (
-            <motion.div variants={fadeUp}>
-              <NotesSection notes={notesTrimmed} />
-            </motion.div>
-          )}
-        </motion.div>
-        <div className="h-2" />
-      </div>
-
-      <ActionButtons
-        invoice={invoice}
-        onIssue={onIssue}
-        onMarkPaid={onMarkPaid}
-        onCancel={onCancel}
-        onDownload={onDownload}
-        onSendEmail={onSendEmail}
-        actionLoading={actionLoading}
-        pdfLoading={pdfLoading}
-        emailLoading={emailLoading}
-      />
-    </motion.div>
+        {notesTrimmed && (
+          <motion.div variants={fadeUp}>
+            <NotesSection notes={notesTrimmed} />
+          </motion.div>
+        )}
+      </motion.div>
+      <div className="h-2" />
+    </ContextPanel>
   );
 }
 

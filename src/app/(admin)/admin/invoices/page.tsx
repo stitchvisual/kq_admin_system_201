@@ -3,35 +3,30 @@
 import { useState, useEffect, useMemo } from 'react';
 import useSWR from 'swr';
 import { AnimatePresence, motion } from 'framer-motion';
-import { staggerContainerFast } from '@/lib/motion/variants';
+import { staggerContainerFast, fadeUp } from '@/lib/motion/variants';
 import {
   FileText,
   Download,
   Send,
   CheckCircle,
-  XCircle,
   ChevronLeft,
   ChevronRight,
   Loader2,
-  X,
   AlertTriangle,
   Calendar,
   Plus,
   Pencil,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import type { InvoiceWithClient, ClientSessionGroup as ClientSessionGroupType, UninvoicedSession } from '@/repositories/invoices.repository';
+import type { InvoiceWithClient, ClientSessionGroup as ClientSessionGroupType } from '@/repositories/invoices.repository';
 import { StatCard, StatCardGrid } from '@/components/shared/StatCard';
 import { EmptyInvoices } from '@/components/botanical/EmptyState';
 import { InvoiceRow as InvoiceRowComponent } from '@/components/invoices/InvoiceRow';
 import { InvoiceDetailPanel } from '@/components/invoices/InvoiceDetailPanel';
 import { BulkIssueModal, BulkMarkPaidModal } from '@/components/invoices/BulkActionModal';
-import { SessionSelectionBar } from '@/components/invoices/SessionSelectionBar';
-import { ClientSessionGroup as ClientSessionGroupComponent } from '@/components/invoices/ClientSessionGroup';
-import { GenerateDateRangeSelector } from '@/components/invoices/GenerateDateRangeSelector';
 import { apiDataFetcher } from '@/lib/api-swr-fetcher';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
 
 // ============================================================================
 // TYPES
@@ -112,21 +107,10 @@ function addDays(date: Date, days: number): Date {
   return d;
 }
 
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = day === 0 ? 6 : day - 1;
-  d.setDate(d.getDate() - diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 function isOverdue(invoice: InvoiceWithClient): boolean {
   if (invoice.status !== 'issued') return false;
   return new Date(invoice.due_date) < new Date();
 }
-
-const TRAVEL_RATE_PER_KM = parseFloat(process.env.NEXT_PUBLIC_TRAVEL_RATE || '0.97');
 
 const statusTabs: { value: StatusFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -142,9 +126,6 @@ const statusTabs: { value: StatusFilter; label: string }[] = [
 // ============================================================================
 
 export default function UnifiedInvoicesPage() {
-  // --- Tab state ---
-  const [activeTab, setActiveTab] = useState<'invoices' | 'generate'>('invoices');
-
   // --- Invoice list state ---
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceWithClient | null>(null);
@@ -194,16 +175,13 @@ export default function UnifiedInvoicesPage() {
   const [showBulkIssueModal, setShowBulkIssueModal] = useState(false);
   const [showBulkMarkPaidModal, setShowBulkMarkPaidModal] = useState(false);
 
-  // --- Generate section state ---
+  // --- Pending billing state ---
   const [sessionGroups, setSessionGroups] = useState<ClientSessionGroupType[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
-  const [selectedSessionIds, setSelectedSessionIds] = useState<Set<string>>(new Set());
-  const [travelKmMap, setTravelKmMap] = useState<Map<string, number | null>>(new Map());
-  const [generating, setGenerating] = useState(false);
+  const [billingClientIds, setBillingClientIds] = useState<Set<string>>(new Set());
+  const [billingAll, setBillingAll] = useState(false);
 
   const panelOpen = panelMode !== 'empty';
 
@@ -212,38 +190,13 @@ export default function UnifiedInvoicesPage() {
   const hasSelectedDrafts = selectedInvoices.some(inv => inv.status === 'draft');
   const hasSelectedIssued = selectedInvoices.some(inv => inv.status === 'issued');
 
-  const selectedClientCount = sessionGroups.filter(group =>
-    group.sessions.some(s => selectedSessionIds.has(s.id))
-  ).length;
-
-  const selectedTotal = sessionGroups.reduce((total, group) => {
-    const groupTotal = group.sessions
-      .filter(s => selectedSessionIds.has(s.id))
-      .reduce((sum, s) => sum + (s.rate * s.duration_hours), 0);
-    return total + groupTotal;
-  }, 0);
-
-  const selectedTravelTotal = sessionGroups.reduce((total, group) => {
-    return group.sessions
-      .filter(s => selectedSessionIds.has(s.id))
-      .reduce((sum, s) => {
-        const km = travelKmMap.get(s.id) ?? s.travel_km ?? 0;
-        return sum + (km * TRAVEL_RATE_PER_KM);
-      }, total);
-  }, 0);
-
-  const totalUninvoicedSessions = sessionGroups.reduce((sum, g) => sum + g.sessions.length, 0);
+  // Session selection removed - no longer needed
 
   // --- Initialize dates ---
   useEffect(() => {
     const today = new Date();
     const defaultDue = addDays(today, 14);
     setDueDate(formatDateForInput(defaultDue));
-    
-    const thisMonday = getWeekStart(today);
-    const fourWeeksAgoMonday = addDays(thisMonday, -28);
-    setStartDate(formatDateForInput(fourWeeksAgoMonday));
-    setEndDate(formatDateForInput(today));
   }, []);
 
   // --- Fetch data ---
@@ -259,23 +212,15 @@ export default function UnifiedInvoicesPage() {
   }, [invoiceListData?.pagination]);
 
   const fetchUninvoicedSessions = async (signal?: AbortSignal) => {
-    if (!startDate || !endDate) return;
-
     setSessionsLoading(true);
-    setSelectedSessionIds(new Set());
-    setTravelKmMap(new Map());
     try {
       const res = await fetch(
-        `/api/invoices/uninvoiced-sessions?startDate=${startDate}&endDate=${endDate}`,
+        `/api/invoices/uninvoiced-sessions?startDate=1970-01-01&endDate=2099-12-31`,
         { signal, credentials: 'same-origin' }
       );
       const data = await res.json();
       if (data.success) {
         setSessionGroups(data.data);
-        const validSessionIds = data.data.flatMap((group: ClientSessionGroupType) =>
-          group.sessions.filter((s: UninvoicedSession) => s.rate > 0).map((s: UninvoicedSession) => s.id)
-        );
-        setSelectedSessionIds(new Set(validSessionIds));
       } else {
         toast.error(data.error?.message ?? 'Failed to load sessions');
       }
@@ -289,12 +234,10 @@ export default function UnifiedInvoicesPage() {
   };
 
   useEffect(() => {
-    if (!startDate || !endDate) return;
-
     const controller = new AbortController();
     fetchUninvoicedSessions(controller.signal);
     return () => controller.abort();
-  }, [startDate, endDate]);
+  }, []);
 
   // --- Panel operations ---
   const openPanel = (mode: PanelMode) => {
@@ -510,102 +453,71 @@ export default function UnifiedInvoicesPage() {
     toast.success(`Downloaded ${selected.length} invoice(s)`);
   };
 
-  // --- Generate section operations ---
-  const toggleSession = (clientId: string, sessionId: string) => {
-    const newSelected = new Set(selectedSessionIds);
-    if (newSelected.has(sessionId)) {
-      newSelected.delete(sessionId);
-    } else {
-      newSelected.add(sessionId);
-    }
-    setSelectedSessionIds(newSelected);
-  };
+  const handleBillNow = async (clientId: string, autoEmail: boolean = false) => {
+    if (billingClientIds.has(clientId)) return;
 
-  const toggleClient = (clientId: string) => {
-    const group = sessionGroups.find(g => g.client_id === clientId);
-    if (!group) return;
-
-    const clientSessionIds = group.sessions.map(s => s.id);
-    const clientHasAnySelected = clientSessionIds.some(id => selectedSessionIds.has(id));
-
-    const newSelected = new Set(selectedSessionIds);
-    if (clientHasAnySelected) {
-      clientSessionIds.forEach(id => newSelected.delete(id));
-    } else {
-      group.sessions
-        .filter(s => s.rate > 0)
-        .forEach(s => newSelected.add(s.id));
-    }
-    setSelectedSessionIds(newSelected);
-  };
-
-  const selectAllSessions = () => {
-    const allValidSessionIds = sessionGroups.flatMap(g =>
-      g.sessions.filter(s => s.rate > 0).map(s => s.id)
-    );
-    setSelectedSessionIds(new Set(allValidSessionIds));
-  };
-
-  const deselectAllSessions = () => {
-    setSelectedSessionIds(new Set());
-  };
-
-  const handleTravelKmChange = (sessionId: string, km: number | null) => {
-    setTravelKmMap(prev => {
-      const newMap = new Map(prev);
-      newMap.set(sessionId, km);
-      return newMap;
-    });
-  };
-
-  const handleGenerate = async () => {
-    if (selectedSessionIds.size === 0) {
-      toast.error('Please select at least one session');
-      return;
-    }
-
-    setGenerating(true);
+    setBillingClientIds(prev => new Set(prev).add(clientId));
     try {
-      const clientsPayload = sessionGroups
-        .map(g => ({
-          client_id: g.client_id,
-          sessions: g.sessions
-            .filter(s => selectedSessionIds.has(s.id))
-            .map(s => ({
-              ...s,
-              travel_km: travelKmMap.get(s.id) ?? s.travel_km,
-            })),
-        }))
-        .filter(c => c.sessions.length > 0);
-
-      const res = await fetch('/api/invoices/generate', {
+      const res = await fetch('/api/invoices/bill-now', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          clients: clientsPayload,
+          client_id: clientId,
           due_date: dueDate,
-          notes,
+          notes: notes || undefined,
+          auto_email: autoEmail,
         }),
       });
-
       const data = await res.json();
       if (data.success) {
-        for (const invoice of data.data) {
-          await fetch(`/api/invoices/${invoice.id}/issue`, { method: 'POST' });
-        }
-        toast.success(`Generated and issued ${data.data.length} invoice(s)`);
+        toast.success(`Invoice ${data.data.invoice_number} created and issued${autoEmail ? ', email sent' : ''}`);
         await fetchUninvoicedSessions();
         await mutateInvoices();
         await mutateSummary();
       } else {
-        toast.error(data.error?.message ?? 'Failed to generate invoices');
+        toast.error(data.error?.message ?? 'Failed to generate invoice');
       }
     } catch (error) {
-      console.error('Failed to generate invoices:', error);
-      toast.error('Failed to generate invoices');
+      console.error('Failed to bill now:', error);
+      toast.error('Failed to generate invoice');
     } finally {
-      setGenerating(false);
+      setBillingClientIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(clientId);
+        return newSet;
+      });
     }
+  };
+
+  const handleBillAll = async () => {
+    if (billingAll || sessionGroups.length === 0) return;
+    if (!confirm(`Generate and issue ${sessionGroups.length} invoice(s)?`)) return;
+
+    setBillingAll(true);
+    let successCount = 0;
+    for (const group of sessionGroups) {
+      try {
+        const res = await fetch('/api/invoices/bill-now', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_id: group.client_id,
+            due_date: dueDate,
+            notes: notes || undefined,
+            auto_email: false,
+          }),
+        });
+        const data = await res.json();
+        if (data.success) successCount++;
+      } catch (error) {
+        console.error('Failed to bill client:', group.client_name, error);
+      }
+    }
+    setBillingAll(false);
+    toast.success(`Created and issued ${successCount} invoice(s)`);
+    await fetchUninvoicedSessions();
+    await mutateInvoices();
+    await mutateSummary();
   };
 
   // --- Table selection ---
@@ -706,77 +618,51 @@ export default function UnifiedInvoicesPage() {
             />
           </StatCardGrid>
 
-          {/* Tab Navigation */}
-          <div className="mb-6 flex items-center gap-0.5 p-1 rounded-lg bg-mutedBg border border-[hsl(34_22%_74%)]">
-            <button
-              onClick={() => setActiveTab('invoices')}
-              className={cn(
-                'h-9 px-4 rounded-md text-sm font-medium transition-all cursor-pointer flex items-center gap-2',
-                activeTab === 'invoices'
-                  ? 'bg-card text-foreground font-semibold shadow-sm'
-                  : 'bg-transparent text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <FileText size={15} />
-              Invoices
-            </button>
-            <button
-              onClick={() => setActiveTab('generate')}
-              className={cn(
-                'h-9 px-4 rounded-md text-sm font-medium transition-all cursor-pointer flex items-center gap-2',
-                activeTab === 'generate'
-                  ? 'bg-card text-foreground font-semibold shadow-sm'
-                  : 'bg-transparent text-muted-foreground hover:text-foreground'
-              )}
-            >
-              <Plus size={15} />
-              Generate
-              {totalUninvoicedSessions > 0 && (
-                <span
+          {/* Pending Billing Section */}
+          <PendingBillingSection
+            sessionGroups={sessionGroups}
+            loading={sessionsLoading}
+            dueDate={dueDate}
+            notes={notes}
+            billingClientIds={billingClientIds}
+            billingAll={billingAll}
+            onDueDateChange={setDueDate}
+            onNotesChange={setNotes}
+            onBillNow={handleBillNow}
+            onBillAll={handleBillAll}
+            formatCurrency={formatCurrency}
+          />
+
+          {/* Invoices List Section */}
+          <div className="mt-8">
+            {/* Tab Navigation */}
+            <div className="mb-5 flex items-center gap-1 p-1 rounded-lg bg-mutedBg border border-[hsl(34_22%_74%)] relative">
+              {statusTabs.map(tab => (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setStatusFilter(tab.value)}
                   className={cn(
-                    'px-2 py-0.5 rounded-full text-[11px] font-bold',
-                    activeTab === 'generate'
-                      ? 'bg-primary/10 text-primary border border-primary/30'
-                      : 'bg-transparent text-primary border border-primary/50'
+                    'relative h-8 px-3.5 rounded-md text-sm font-medium cursor-pointer',
+                    statusFilter === tab.value
+                      ? 'text-foreground font-semibold'
+                      : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
-                  {totalUninvoicedSessions}
-                </span>
-              )}
-            </button>
-          </div>
+                  {statusFilter === tab.value && (
+                    <motion.span
+                      layoutId="invoice-status-tab-indicator"
+                      className="absolute inset-0 rounded-md bg-card border border-primary/30 shadow-sm"
+                      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              ))}
+            </div>
 
-          {/* Tab Content */}
-          {activeTab === 'generate' ? (
-            <GenerateTabContent
-              sessionGroups={sessionGroups}
-              selectedSessionIds={selectedSessionIds}
-              travelKmMap={travelKmMap}
-              startDate={startDate}
-              endDate={endDate}
-              dueDate={dueDate}
-              notes={notes}
-              loading={sessionsLoading}
-              generating={generating}
-              selectedClientCount={selectedClientCount}
-              selectedTotal={selectedTotal}
-              selectedTravelTotal={selectedTravelTotal}
-              onStartDateChange={setStartDate}
-              onEndDateChange={setEndDate}
-              onDueDateChange={setDueDate}
-              onNotesChange={setNotes}
-              onToggleSession={toggleSession}
-              onToggleClient={toggleClient}
-              onSelectAll={selectAllSessions}
-              onDeselectAll={deselectAllSessions}
-              onTravelKmChange={handleTravelKmChange}
-              onGenerate={handleGenerate}
-              formatCurrency={formatCurrency}
-            />
-          ) : (
-            <InvoicesTabContent
+            <InvoicesListContent
               statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
               selectedIds={selectedIds}
               hasSelectedDrafts={hasSelectedDrafts}
               hasSelectedIssued={hasSelectedIssued}
@@ -798,7 +684,7 @@ export default function UnifiedInvoicesPage() {
               onDownload={handleDownloadPdf}
               onPageChange={handlePageChange}
             />
-          )}
+          </div>
         </div>
 
         {/* DETAIL PANEL — mobile backdrop */}
@@ -822,7 +708,6 @@ export default function UnifiedInvoicesPage() {
             'md:border-t-0 md:border-l md:border-primary',
             'translate-y-full',
             'transition-transform duration-[280ms] ease-[cubic-bezier(0.16,1,0.3,1)]',
-            'md:relative md:inset-auto md:z-auto md:max-h-none md:h-full md:rounded-none md:border-t-0',
             'md:translate-y-0',
             'md:transition-[width,opacity] md:duration-[280ms] md:ease-[cubic-bezier(0.16,1,0.3,1)]',
             (!panelOpen || panelClosing) && 'pointer-events-none',
@@ -883,155 +768,208 @@ export default function UnifiedInvoicesPage() {
 }
 
 // ============================================================================
-// GENERATE TAB CONTENT COMPONENT
+// PENDING BILLING SECTION COMPONENT
 // ============================================================================
 
-function GenerateTabContent({
+function PendingBillingSection({
   sessionGroups,
-  selectedSessionIds,
-  travelKmMap,
-  startDate,
-  endDate,
+  loading,
   dueDate,
   notes,
-  loading,
-  generating,
-  selectedClientCount,
-  selectedTotal,
-  selectedTravelTotal,
-  onStartDateChange,
-  onEndDateChange,
+  billingClientIds,
+  billingAll,
   onDueDateChange,
   onNotesChange,
-  onToggleSession,
-  onToggleClient,
-  onSelectAll,
-  onDeselectAll,
-  onTravelKmChange,
-  onGenerate,
+  onBillNow,
+  onBillAll,
   formatCurrency,
 }: {
   sessionGroups: ClientSessionGroupType[];
-  selectedSessionIds: Set<string>;
-  travelKmMap: Map<string, number | null>;
-  startDate: string;
-  endDate: string;
+  loading: boolean;
   dueDate: string;
   notes: string;
-  loading: boolean;
-  generating: boolean;
-  selectedClientCount: number;
-  selectedTotal: number;
-  selectedTravelTotal: number;
-  onStartDateChange: (date: string) => void;
-  onEndDateChange: (date: string) => void;
+  billingClientIds: Set<string>;
+  billingAll: boolean;
   onDueDateChange: (date: string) => void;
   onNotesChange: (notes: string) => void;
-  onToggleSession: (clientId: string, sessionId: string) => void;
-  onToggleClient: (clientId: string) => void;
-  onSelectAll: () => void;
-  onDeselectAll: () => void;
-  onTravelKmChange: (sessionId: string, km: number | null) => void;
-  onGenerate: () => void;
+  onBillNow: (clientId: string, autoEmail: boolean) => void;
+  onBillAll: () => void;
   formatCurrency: (amount: number, inCents?: boolean) => string;
 }) {
+  const totalSessions = sessionGroups.reduce((sum, g) => sum + g.sessions.length, 0);
+  const totalAmount = sessionGroups.reduce((sum, g) => sum + g.estimated_total, 0) / 100;
+
   return (
-    <div className="flex flex-col h-full pb-20">
-      {/* Date range and settings row */}
-      <div className="space-y-4 mb-4">
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Session period</label>
-          <GenerateDateRangeSelector
-            startDate={startDate}
-            endDate={endDate}
-            onStartDateChange={onStartDateChange}
-            onEndDateChange={onEndDateChange}
+          <h2 className="font-heading text-lg font-semibold text-foreground flex items-center gap-2">
+            <Plus size={18} className="text-primary" />
+            Pending Billing
+          </h2>
+          {totalSessions > 0 && (
+            <p className="text-sm text-muted-foreground mt-1">
+              {totalSessions} session{totalSessions !== 1 ? 's' : ''} across {sessionGroups.length} client{sessionGroups.length !== 1 ? 's' : ''} · {formatCurrency(totalAmount)} total
+            </p>
+          )}
+        </div>
+        {sessionGroups.length > 1 && (
+          <button
+            onClick={onBillAll}
+            disabled={billingAll || sessionGroups.length === 0}
+            className="h-9 px-4 rounded-lg bg-primary text-white text-sm font-medium flex items-center gap-2 hover:bg-primary/90 disabled:opacity-50 transition-colors"
+          >
+            {billingAll ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+            Bill All
+          </button>
+        )}
+      </div>
+
+      {/* Settings row */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Default Due Date</label>
+          <input
+            type="date"
+            value={dueDate}
+            onChange={e => onDueDateChange(e.target.value)}
+            className="w-full h-9 px-3 rounded-lg border border-[hsl(34_22%_74%)] bg-card text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
           />
         </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Due Date</label>
-            <DateRangePicker
-              startDate={dueDate}
-              endDate={dueDate}
-              onStartDateChange={onDueDateChange}
-              onEndDateChange={onDueDateChange}
-              mode="single"
-              presets={true}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Notes (optional)</label>
-            <input
-              type="text"
-              value={notes}
-              onChange={e => onNotesChange(e.target.value)}
-              placeholder="Invoice notes..."
-              className="w-full h-9 px-3 rounded-lg border border-[hsl(34_22%_74%)] bg-card text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
-            />
-          </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">Default Notes (optional)</label>
+          <input
+            type="text"
+            value={notes}
+            onChange={e => onNotesChange(e.target.value)}
+            placeholder="Invoice notes..."
+            className="w-full h-9 px-3 rounded-lg border border-[hsl(34_22%_74%)] bg-card text-sm text-foreground outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors"
+          />
         </div>
       </div>
 
-      {/* Session list */}
+      {/* Client billing table */}
       {loading ? (
         <div className="flex justify-center py-12">
           <Loader2 size={24} className="animate-spin text-muted-foreground" />
         </div>
       ) : sessionGroups.length > 0 ? (
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-          {sessionGroups.map(group => (
-            <ClientSessionGroupComponent
-              key={group.client_id}
-              group={group}
-              selectedSessionIds={selectedSessionIds}
-              travelKmMap={travelKmMap}
-              onToggleSession={(sessionId) => onToggleSession(group.client_id, sessionId)}
-              onToggleAll={() => onToggleClient(group.client_id)}
-              onTravelKmChange={onTravelKmChange}
-              formatCurrency={formatCurrency}
-              travelRatePerKm={TRAVEL_RATE_PER_KM}
-            />
-          ))}
+        <div className="rounded-xl border border-primary bg-card overflow-hidden">
+          {/* Desktop table header */}
+          <div className="hidden md:grid md:grid-cols-[1fr_80px_120px_140px] gap-4 items-center px-4 py-3 border-b border-primary bg-mutedBg">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Client</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Sessions</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Amount</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground text-right">Actions</span>
+          </div>
+
+          {/* Client rows */}
+          <motion.div
+            className="divide-y divide-[var(--divide-color)]"
+            style={{ ['--divide-color']: 'hsl(37 18% 89%)' } as React.CSSProperties}
+            variants={staggerContainerFast}
+            initial="hidden"
+            animate="visible"
+          >
+            {sessionGroups.map(group => (
+              <motion.div
+                key={group.client_id}
+                variants={fadeUp}
+                className="p-4 hover:bg-mutedBg/50 transition-colors"
+              >
+                {/* Mobile layout */}
+                <div className="md:hidden space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground">{group.client_name}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {group.total_sessions} session{group.total_sessions !== 1 ? 's' : ''} · {formatCurrency(group.estimated_total / 100)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => onBillNow(group.client_id, false)}
+                      disabled={billingClientIds.has(group.client_id)}
+                      className="flex-1 h-9 rounded-lg bg-primary text-white text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {billingClientIds.has(group.client_id) ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <FileText size={14} />
+                      )}
+                      Bill Now
+                    </button>
+                    <button
+                      onClick={() => onBillNow(group.client_id, true)}
+                      disabled={billingClientIds.has(group.client_id)}
+                      className="flex-1 h-9 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-[hsl(42_26%_87%)] disabled:opacity-50 transition-colors"
+                    >
+                      {billingClientIds.has(group.client_id) ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <Send size={14} />
+                      )}
+                      Bill & Email
+                    </button>
+                  </div>
+                </div>
+
+                {/* Desktop layout */}
+                <div className="hidden md:grid md:grid-cols-[1fr_80px_120px_140px] gap-4 items-center">
+                  <span className="text-sm font-medium text-foreground">{group.client_name}</span>
+                  <span className="text-sm text-muted-foreground">{group.total_sessions}</span>
+                  <span className="text-sm font-medium text-foreground">{formatCurrency(group.estimated_total / 100)}</span>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      onClick={() => onBillNow(group.client_id, false)}
+                      disabled={billingClientIds.has(group.client_id)}
+                      className="h-8 px-3 rounded-lg bg-primary text-white text-xs font-medium flex items-center gap-1.5 hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                    >
+                      {billingClientIds.has(group.client_id) ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <FileText size={13} />
+                      )}
+                      Bill Now
+                    </button>
+                    <button
+                      onClick={() => onBillNow(group.client_id, true)}
+                      disabled={billingClientIds.has(group.client_id)}
+                      className="h-8 px-3 rounded-lg border border-[hsl(34_22%_74%)] bg-[hsl(42_26%_92%)] text-[hsl(145_15%_28%)] text-xs font-medium flex items-center gap-1.5 hover:bg-[hsl(42_26%_87%)] disabled:opacity-50 transition-colors"
+                    >
+                      {billingClientIds.has(group.client_id) ? (
+                        <Loader2 size={13} className="animate-spin" />
+                      ) : (
+                        <Send size={13} />
+                      )}
+                      Email
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-12 text-center empty-state">
+        <div className="flex flex-col items-center justify-center rounded-xl bg-card border border-primary p-12">
           <Calendar size={36} className="mb-3 text-muted-foreground/60" />
-          <p className="font-body text-sm font-medium text-foreground mb-1">No completed, uninvoiced sessions in this date range</p>
-          <p className="text-xs text-muted-foreground max-w-sm">
-            Try expanding the date range above. Sessions must be marked as &quot;completed&quot; before they can be invoiced.
+          <p className="font-body text-sm font-medium text-foreground mb-1">No completed, uninvoiced sessions</p>
+          <p className="text-xs text-muted-foreground max-w-sm text-center">
+            Sessions must be marked as "completed" before they can be invoiced.
           </p>
         </div>
       )}
-
-      {/* Sticky Selection Bar */}
-      <SessionSelectionBar
-        selectedCount={selectedSessionIds.size}
-        clientCount={selectedClientCount}
-        totalAmount={selectedTotal + selectedTravelTotal}
-        travelKmTotal={sessionGroups.reduce((sum, g) => {
-          return g.sessions
-            .filter(s => selectedSessionIds.has(s.id))
-            .reduce((s, session) => s + (travelKmMap.get(session.id) ?? session.travel_km ?? 0), sum);
-        }, 0)}
-        onSelectAll={onSelectAll}
-        onDeselectAll={onDeselectAll}
-        onGenerate={onGenerate}
-        generating={generating}
-        formatCurrency={formatCurrency}
-      />
     </div>
   );
 }
 
 // ============================================================================
-// INVOICES TAB CONTENT COMPONENT
+// INVOICES LIST CONTENT COMPONENT
 // ============================================================================
 
-function InvoicesTabContent({
+function InvoicesListContent({
   statusFilter,
-  setStatusFilter,
   selectedIds,
   hasSelectedDrafts,
   hasSelectedIssued,
@@ -1054,7 +992,6 @@ function InvoicesTabContent({
   onPageChange,
 }: {
   statusFilter: StatusFilter;
-  setStatusFilter: (filter: StatusFilter) => void;
   selectedIds: Set<string>;
   hasSelectedDrafts: boolean;
   hasSelectedIssued: boolean;
@@ -1078,32 +1015,6 @@ function InvoicesTabContent({
 }) {
   return (
     <>
-      {/* Status Tabs — sliding indicator via shared layoutId */}
-      <div className="mb-5 flex items-center gap-1 p-1 rounded-lg bg-mutedBg border border-[hsl(34_22%_74%)] relative">
-        {statusTabs.map(tab => (
-          <button
-            key={tab.value}
-            type="button"
-            onClick={() => setStatusFilter(tab.value)}
-            className={cn(
-              'relative h-8 px-3.5 rounded-md text-sm font-medium cursor-pointer',
-              statusFilter === tab.value
-                ? 'text-foreground font-semibold'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-          >
-            {statusFilter === tab.value && (
-              <motion.span
-                layoutId="invoice-status-tab-indicator"
-                className="absolute inset-0 rounded-md bg-card border border-primary/30 shadow-sm"
-                transition={{ type: 'spring', stiffness: 400, damping: 32 }}
-              />
-            )}
-            <span className="relative z-10">{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
       {/* Bulk Action Bar */}
       {selectedIds.size > 0 && (
         <div className="mb-4 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/10 p-3">

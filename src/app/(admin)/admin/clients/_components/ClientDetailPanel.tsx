@@ -1,6 +1,7 @@
 'use client';
 
 import { Pencil, Trash2 } from 'lucide-react';
+import { ContextPanel } from '@/components/panels/ContextPanel';
 import { cn } from '@/lib/utils';
 import type { Client } from '@/db/schema/clients';
 import {
@@ -286,30 +287,14 @@ export function ClientDetailPanel({
   onDelete,
 }: ClientDetailPanelProps) {
   return (
-    <div className="flex flex-col h-full min-h-0 bg-card overflow-hidden">
-      <SheetHandle className="md:hidden" />
-
-      <div className="h-[3px] w-full bg-primary flex-shrink-0" aria-hidden />
-
-      <PanelHeader
-        showAccentBar={false}
-        breadcrumb="Clients"
-        title="Client details"
-        onClose={onClose}
-      />
-
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-4">
-        <ClientHeroCard client={client} />
-        <div className="animate-in fade-in-0 duration-300 delay-100 space-y-4">
-          <BalanceChip outstandingBalance={outstandingBalance} />
-          <RateCodesSection rateCodes={rateCodes} />
-          <RecentSessionsSection appointments={recentAppointments} />
-          <InvoicesSection invoices={invoices} />
-        </div>
-        <div className="h-2" />
-      </div>
-
-      <PanelFooter>
+    <ContextPanel
+      breadcrumb="Clients"
+      title="Client details"
+      accentClass="bg-primary"
+      showAccentBar={true}
+      isOpen={true}
+      onClose={onClose}
+      footer={
         <div className="flex gap-2">
           <PrimaryBtn type="button" onClick={onEdit} className="flex-1">
             <Pencil size={13} />
@@ -320,7 +305,16 @@ export function ClientDetailPanel({
             Delete
           </DangerBtn>
         </div>
-      </PanelFooter>
-    </div>
+      }
+    >
+      <ClientHeroCard client={client} />
+      <div className="animate-in fade-in-0 duration-300 delay-100 space-y-4">
+        <BalanceChip outstandingBalance={outstandingBalance} />
+        <RateCodesSection rateCodes={rateCodes} />
+        <RecentSessionsSection appointments={recentAppointments} />
+        <InvoicesSection invoices={invoices} />
+      </div>
+      <div className="h-2" />
+    </ContextPanel>
   );
 }

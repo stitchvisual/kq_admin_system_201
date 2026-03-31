@@ -743,4 +743,16 @@ export const invoicesRepository = {
       },
     };
   },
+
+  /**
+   * Get all uninvoiced completed sessions without date range constraints
+   * Used by processBilling() for one-click billing feature
+   * Uses a wide date range to effectively return "all" uninvoiced sessions
+   */
+  async getAllUninvoicedSessions(): Promise<ClientSessionGroup[]> {
+    // Use a very wide date range to get all uninvoiced sessions
+    const startDate = new Date('1970-01-01');
+    const endDate = new Date('2099-12-31');
+    return this.getUninvoicedSessionsByDateRange(startDate, endDate);
+  },
 };

@@ -2,6 +2,7 @@ import { invoicesRepository, type ClientSessionGroup, type InvoiceWithClient, ty
 import { ndisPricing, invoiceItems, appointments } from '@/db/schema';
 import { NotFoundError, ValidationError } from '@/lib/errors';
 import { formatDate } from '@/lib/format';
+import { addDays, format as formatDateForInput } from 'date-fns';
 import { eq, inArray, sql } from 'drizzle-orm';
 import { db } from '@/db';
 
@@ -536,5 +537,77 @@ export const invoicesService = {
       emailed_at: new Date(),
       resend_email_id: resendEmailId,
     });
+  },
+
+  async processBilling(
+    clientId: string,
+    options?: { dueDate?: string; notes?: string; autoEmail?: boolean; appointmentIds?: string[] }
+  ): Promise<InvoiceWithClient> {
+    const { dueDate, notes, autoEmail, appointmentIds } = options || {};
+
+    // Fetch all uninvoiced completed sessions for this client
+    const allUninvoiced = await invoicesRepository.getAllUninvoicedSessions();
+
+    // Filter to this client
+    let sessions = allUninvoiced.filter(g => g.client_id === clientId).flatMap(g => g.sessions);
+
+    // If appointment_ids provided, filter to only those sessions (for Quick Bill single session)
+    if (appointmentIds && appointmentIds.length > 0) {
+      sessions = sessions.filter(s => appointmentIds.includes(s.id));
+    }
+
+    if (sessions.length === 0) {
+      throw new ValidationError('No uninvoiced sessions found for this client');
+    }
+
+    // Generate invoice
+    const invoice = await this.generateInvoice({
+      client_id: clientId,
+      sessions,
+      due_date: dueDate || formatDateForInput(addDays(new Date(), 14)),
+      notes,
+    });
+
+    // Auto-issue if requested
+    if (autoEmail || true) {  // Always auto-issue for "sleek" experience
+      await this.issueInvoice(invoice.id);
+      invoice.status = 'issued';
+      invoice.issued_at = new Date();
+    }
+
+    // Send email if requested
+    if (autoEmail) {
+      try {
+        const buffer = await generateInvoicePdfBuffer(invoice);
+        const { resend } = await import('@/lib/resend');
+        const { isResendConfigured, getFromAddress } = await import('@/lib/resend');
+        const { buildInvoiceEmailHtml } = await import('@/emails/invoice-email');
+
+        if (isResendConfigured() && resend.resend) {
+          const html = buildInvoiceEmailHtml({
+            clientName: invoice.client.name,
+            invoiceNumber: invoice.invoice_number,
+            total: formatAud(parseFloat(String(invoice.total))),
+            dueDate: formatDate(invoice.due_date),
+          });
+
+          await resend.resend.emails.send({
+            from: getFromAddress(),
+            to: [invoice.client.email],
+            subject: `Invoice ${invoice.invoice_number} from ${process.env.NEXT_PUBLIC_BUSINESS_NAME || 'KQ Collective'}`,
+            html,
+            attachments: [{ filename: `${invoice.invoice_number}.pdf`, content: buffer }],
+          });
+
+          await this.stampEmailed(invoice.id, null);
+        }
+      } catch (emailError) {
+        console.error('Failed to send email:', emailError);
+        // Don't fail the whole billing if email fails
+      }
+    }
+
+    // Return fresh invoice data
+    return this.getById(invoice.id);
   },
 };
